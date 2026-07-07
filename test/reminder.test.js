@@ -1,6 +1,6 @@
 const test = require('node:test');
 const assert = require('node:assert');
-const { rollover, shouldRemind, markShown, applyAction } = require('../src/reminder');
+const { rollover, shouldRemind, markShown, applyAction, streak } = require('../src/reminder');
 
 const config = {
   intervalMinutes: 60,
@@ -108,4 +108,67 @@ test('applyAction on state without history does not lose today count', () => {
   const s = applyAction(noHistory, 'had-it', noon, config);
   assert.equal(s.glassesHad, 2);
   assert.deepEqual(s.history['2026-07-07'], { had: 2, goal: 8 });
+});
+
+// --- Lane #1: streak days ---
+
+test('streak of empty history is 0', () => {
+  assert.equal(streak({}, '2026-07-07', 8), 0);
+});
+
+test('streak counts consecutive goal-met days ending today', () => {
+  const history = {
+    '2026-07-05': { had: 8, goal: 8 },
+    '2026-07-06': { had: 9, goal: 8 },
+    '2026-07-07': { had: 8, goal: 8 },
+  };
+  assert.equal(streak(history, '2026-07-07', 8), 3);
+});
+
+test('streak includes today only when today met', () => {
+  const history = {
+    '2026-07-06': { had: 8, goal: 8 },
+    '2026-07-07': { had: 2, goal: 8 }, // today not yet met
+  };
+  assert.equal(streak(history, '2026-07-07', 8), 1); // counts yesterday, not today
+});
+
+test('today-not-yet-met with no prior days is 0', () => {
+  const history = { '2026-07-07': { had: 2, goal: 8 } };
+  assert.equal(streak(history, '2026-07-07', 8), 0);
+});
+
+test('a gap (missed day) resets the streak', () => {
+  const history = {
+    '2026-07-04': { had: 8, goal: 8 },
+    '2026-07-05': { had: 3, goal: 8 }, // missed
+    '2026-07-06': { had: 8, goal: 8 },
+    '2026-07-07': { had: 8, goal: 8 },
+  };
+  assert.equal(streak(history, '2026-07-07', 8), 2); // only 07-06 + 07-07
+});
+
+test('a calendar-day gap (absent record) resets the streak', () => {
+  const history = {
+    '2026-07-05': { had: 8, goal: 8 },
+    // 07-06 absent entirely
+    '2026-07-07': { had: 8, goal: 8 },
+  };
+  assert.equal(streak(history, '2026-07-07', 8), 1);
+});
+
+test('streak uses each day’s own goal', () => {
+  const history = {
+    '2026-07-06': { had: 6, goal: 6 }, // met that day’s goal of 6
+    '2026-07-07': { had: 8, goal: 8 },
+  };
+  assert.equal(streak(history, '2026-07-07', 8), 2);
+});
+
+test('streak crosses a month boundary', () => {
+  const history = {
+    '2026-06-30': { had: 8, goal: 8 },
+    '2026-07-01': { had: 8, goal: 8 },
+  };
+  assert.equal(streak(history, '2026-07-01', 8), 2);
 });

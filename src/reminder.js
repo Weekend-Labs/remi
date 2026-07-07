@@ -60,6 +60,34 @@ function applyAction(state, action, now, config) {
   return s;
 }
 
+// Previous calendar day as "YYYY-MM-DD". UTC math so DST never shifts the date.
+function prevDayStr(dateStr) {
+  const [y, m, d] = dateStr.split('-').map(Number);
+  const dt = new Date(Date.UTC(y, m - 1, d - 1));
+  const mm = String(dt.getUTCMonth() + 1).padStart(2, '0');
+  const dd = String(dt.getUTCDate()).padStart(2, '0');
+  return `${dt.getUTCFullYear()}-${mm}-${dd}`;
+}
+
+// Consecutive goal-met days ending today. Today counts only if already met;
+// a not-yet-met today doesn't count but doesn't break the streak (still drinkable).
+// Any earlier day below its goal — or absent — ends the run. Each day judged by
+// its own stored goal, falling back to `goal` when a record lacks one.
+function streak(history, today, goal) {
+  let count = 0;
+  let day = today;
+  let first = true;
+  while (true) {
+    const rec = history[day];
+    const met = rec && rec.had >= (rec.goal != null ? rec.goal : goal);
+    if (met) count++;
+    else if (!first) break; // a missed/absent past day ends the streak
+    first = false;
+    day = prevDayStr(day);
+  }
+  return count;
+}
+
 module.exports = {
-  todayStr, isWithinWorkHours, rollover, shouldRemind, markShown, applyAction,
+  todayStr, isWithinWorkHours, rollover, shouldRemind, markShown, applyAction, streak,
 };

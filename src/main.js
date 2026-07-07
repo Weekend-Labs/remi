@@ -1,7 +1,7 @@
 const { app, BrowserWindow, Tray, Menu, ipcMain, screen, nativeImage } = require('electron');
 const path = require('path');
 const { load, saveState, saveConfig, isValidConfig } = require('./state');
-const { rollover, shouldRemind, markShown, applyAction } = require('./reminder');
+const { rollover, shouldRemind, markShown, applyAction, streak, todayStr } = require('./reminder');
 
 const WIN_W = 380;
 const WIN_H = 420;
@@ -116,7 +116,8 @@ function settingsSubmenu() {
 
 function updateTray() {
   if (!tray) return;
-  tray.setTitle(` 💧 ${state.glassesHad}/${state.goal}`);
+  const s = streak(state.history || {}, todayStr(Date.now()), state.goal);
+  tray.setTitle(` 💧 ${state.glassesHad}/${state.goal}${s > 0 ? ` · 🔥${s}` : ''}`);
   tray.setContextMenu(Menu.buildFromTemplate([
     { label: `Today: ${state.glassesHad}/${state.goal} glasses`, enabled: false },
     { label: `Every ${config.intervalMinutes}m · ${config.workHours.start}–${config.workHours.end}`, enabled: false },
@@ -160,8 +161,14 @@ app.whenReady().then(() => {
 });
 
 ipcMain.on('reminder:action', (_e, action) => {
+  const before = state.glassesHad;
   state = applyAction(state, action, Date.now(), config);
   persist();
+  // Fire the streak celebration exactly once: the glass that first hits today's goal.
+  if (action === 'had-it' && before < state.goal && state.glassesHad >= state.goal) {
+    const s = streak(state.history || {}, todayStr(Date.now()), state.goal);
+    overlayWin?.webContents.send('reminder:celebrate', { streak: s });
+  }
 });
 
 ipcMain.on('reminder:hide', () => {
