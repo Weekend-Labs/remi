@@ -180,7 +180,7 @@ counter; "Had it" mirrors today's running count into `history[today]`. Old state
 files without `history` migrate to `{}` on load without losing today's count.
 `glassesHad` remains the today mirror; `history[today].had` is the same value.
 
-### Config (JSON, editable by hand in V1)
+### Config (JSON — editable via the tray **Settings** submenu, or by hand)
 ```json
 {
   "intervalMinutes": 60,
@@ -252,9 +252,11 @@ reaction → walk-out), snooze/progress persistence, work-hours, chime, packaged
    Show in tray title + a one-off "🔥 N-day streak!" bubble. Small, sits on history.
 2. **Calendar view.** A tray "View progress" opens a small window with a month grid
    coloured by goal completion (habit-tracker style), read from `history`. Medium.
-3. **Settings (start/end time + frequency).** A small form window (or tray submenu)
-   to edit `workHours` + `intervalMinutes` without hand-editing config.json. Medium,
-   independent of the others. `# ponytail: tray submenu first; full window only if needed`
+3. ✅ **Settings (start/end time + frequency).** Tray **Settings** submenu with presets
+   for interval (30/45/60/90m), work-hours windows, daily goal, and snooze — persisted
+   to config.json and applied live (loop restarts, no app restart). Invalid combos are
+   prevented (presets only) and guarded (`isValidConfig`: end > start, interval ≥ 5m).
+   `# ponytail: tray submenu shipped; full window only if presets ever feel too limiting`
 
 ---
 

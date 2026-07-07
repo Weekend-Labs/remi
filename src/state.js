@@ -48,4 +48,22 @@ function saveState(dir, state) {
   writeJson(path.join(dir, 'state.json'), state);
 }
 
-module.exports = { load, saveState, DEFAULT_CONFIG };
+function saveConfig(dir, config) {
+  writeJson(path.join(dir, 'config.json'), config);
+}
+
+// Pure validation for user-editable config (settings menu). end > start; interval >= 5m.
+function hm(s) {
+  const [h, m] = String(s).split(':').map(Number);
+  return Number.isFinite(h) && Number.isFinite(m) ? h * 60 + m : NaN;
+}
+
+function isValidConfig(config) {
+  const start = hm(config.workHours && config.workHours.start);
+  const end = hm(config.workHours && config.workHours.end);
+  return Number.isFinite(start) && Number.isFinite(end)
+    && end > start
+    && config.intervalMinutes >= 5;
+}
+
+module.exports = { load, saveState, saveConfig, isValidConfig, DEFAULT_CONFIG };
