@@ -248,8 +248,11 @@ reaction → walk-out), snooze/progress persistence, work-hours, chime, packaged
    `history: { "YYYY-MM-DD": { had, goal } }`; `rollover` archives finishing days,
    "Had it" mirrors today, old files migrate to `{}`. `shouldRemind` untouched.
    Unlocks streak + calendar cheaply.
-1. **Streak days.** On hitting the daily goal, if yesterday also hit → `streak++`.
-   Show in tray title + a one-off "🔥 N-day streak!" bubble. Small, sits on history.
+1. **Streak days.** ✅ Done. Pure `streak(history, today, goal)` counts consecutive
+   goal-met days ending today (today counts only once met; a missed/absent past day
+   ends the run; each day judged by its own stored goal). Tray title shows `· 🔥N`
+   when N>0; the glass that first reaches today's goal fires a one-off
+   "🔥 N-day streak!" bubble (`reminder:celebrate` → overlay), no spam on later glasses.
 2. **Calendar view.** A tray "View progress" opens a small window with a month grid
    coloured by goal completion (habit-tracker style), read from `history`. Medium.
 3. ✅ **Settings (start/end time + frequency).** Tray **Settings** submenu with presets

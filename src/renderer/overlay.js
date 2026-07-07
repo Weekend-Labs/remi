@@ -102,8 +102,19 @@ function walkOut() {
 document.getElementById('had').addEventListener('click', () => choose('had-it'));
 document.getElementById('snz').addEventListener('click', () => choose('snooze'));
 
+// Main fires this once, right after "Had it" first reaches today's goal. It lands
+// during the happy reaction and swaps the bubble text for the streak cheer.
+function celebrate(data = {}) {
+  const n = data.streak || 0;
+  if (n <= 0) return;
+  msg.textContent = `🔥 ${n}-day streak!`;
+  count.textContent = '';
+}
+
 window.buddy?.onShow(showReminder);
+window.buddy?.onCelebrate(celebrate);
 
 // test hooks
 window.showReminder = showReminder;
 window.hideReminder = walkOut;
+window.celebrate = celebrate;
