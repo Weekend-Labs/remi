@@ -14,11 +14,11 @@ Because a notification is easy to ignore — a character strolling across your d
 
 </div>
 
-> **📸 TODO — capture a hero GIF.** The real magic is watching the buddy *walk in*,
-> offer water, cheer when you say "Had it", and stroll back off screen. That can't be
-> screen-recorded headlessly, so drop a `docs/media/remi-demo.gif` here and swap this
-> block for it. Until then, the app icon above is the character you'll meet, and
-> [`docs/DESIGN-YOUR-OWN-BUDDY.md`](docs/DESIGN-YOUR-OWN-BUDDY.md) shows every frame.
+<div align="center">
+
+<img src="docs/media/remi-demo.gif" alt="Remi walks onto the screen, offers a glass of water with a 'Time for water 3/8 today' bubble, and shows Had it / Snooze buttons" width="620" />
+
+</div>
 
 ---
 

@@ -296,6 +296,57 @@ only the final `.icns` is committed.)
 
 ---
 
+## Alternative — don't want to run Python? Let an AI stitch it for you 🤖
+
+Steps 2–4 are just **mechanical image manipulation** — key out a background, find the
+blobs, crop, align feet to one baseline, tile into a strip. A coding agent like
+**Claude Code** or **Codex** is very good at exactly this: you hand it your generated
+images plus the target spec, and it writes and runs the script for you. No Python
+knowledge required — you just describe the destination. (This repo's own sprites were
+produced this way; the `tools/*.py` scripts are the reference implementation the agent
+can read and adapt.)
+
+**The only thing the agent must get right is the output contract the app expects.**
+Paste this into Claude Code / Codex from inside the repo, alongside your generated art:
+
+> I have AI-generated character art in `./my-art/` (a multi-pose sheet and/or separate
+> pose PNGs). Turn them into the two sprite files this Electron app loads, matching the
+> existing ones exactly so I don't have to touch any CSS. Read `tools/*.py`,
+> `src/renderer/index.html`, and `docs/DESIGN-YOUR-OWN-BUDDY.md` first to learn the
+> contract, then:
+>
+> 1. **`src/renderer/walk.png`** — a horizontal walk strip: **4 equal-width cells**,
+>    one walk-cycle frame per cell, **transparent background**, every frame
+>    **bottom-center aligned so the feet sit on one baseline** (no vertical jitter as
+>    the animation cycles). Current file is 904×418 (four 226×418 cells); match that
+>    aspect so the CSS `background-size: 496px 230px` + `steps(4)` still lines up.
+> 2. **`src/renderer/buddy-hold.png`** — a single transparent PNG of the character
+>    holding a glass of water (the arrival/idle pose), tightly cropped to its alpha.
+>
+> Background of my source art is flat magenta `#FF00FF` (key it out to transparent).
+> Use Pillow/numpy — mirror the approach in `tools/cutout.py`, `segment_sheet.py`, and
+> `assemble_walk.py` rather than reinventing it. After writing the files, show me a
+> side-by-side preview so I can eyeball the walk cycle and the feet baseline, then run
+> `npm test` to confirm nothing broke.
+
+Tips for a clean result:
+- **Give the agent the frames in walk order.** If your sheet's poses are scrambled,
+  tell it the sequence (e.g. "left-to-right is contact → passing → contact → passing").
+- **Ask for the preview.** "Show me a preview strip on a light background" catches a
+  misaligned baseline or an over-aggressive cutout before it ships.
+- **Iterate in words, not pixels.** "Frame 3's feet float ~8px high, drop it to the
+  baseline" is a perfectly good instruction — let the agent redo the math.
+- **Icon too:** "now build a 1024×1024 macOS squircle icon from `buddy-hold.png` like
+  `tools/make_icon.py`, then `iconutil` it into `build/icon.icns`" gets you the app icon.
+- **Even the hero GIF:** ask it to render `src/renderer/index.html` headless
+  (Playwright), drive the walk-in → offer sequence, and stitch the frames into
+  `docs/media/remi-demo.gif` with `ffmpeg` — that's exactly how the README GIF was made.
+
+Whichever route you take — Python scripts or an AI stitching them for you — you land on
+the same two PNGs. Wire them in next.
+
+---
+
 ## Step 5 — Wire it in
 
 Drop your new PNGs into `src/renderer/`, overwriting the two the app loads:
