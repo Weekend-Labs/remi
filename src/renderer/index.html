@@ -1,0 +1,100 @@
+<!doctype html>
+<html>
+<head>
+<meta charset="utf-8" />
+<style>
+  html, body {
+    margin: 0; height: 100%; overflow: hidden;
+    background: transparent;
+    font-family: "Chalkboard SE", "Comic Sans MS", -apple-system, sans-serif;
+    user-select: none;
+  }
+  #scene {
+    position: absolute; inset: 0;
+    display: flex; flex-direction: column;
+    align-items: center; justify-content: flex-end;
+    padding-bottom: 12px; box-sizing: border-box;
+    transform: translateX(160%);
+  }
+
+  /* pixel/retro speech bubble */
+  #bubble {
+    background: #fff; color: #16202b;
+    border: 3px solid #16202b; border-radius: 0;
+    padding: 10px 14px; margin-bottom: 12px;
+    font-size: 14px; font-weight: 800; line-height: 1.35; text-align: center;
+    letter-spacing: .3px;
+    box-shadow: 4px 4px 0 rgba(22,32,43,.28);   /* hard offset shadow, no blur */
+    image-rendering: pixelated;
+    opacity: 0; transform: translateY(6px);
+    transition: opacity .25s, transform .25s;
+    max-width: 260px;
+  }
+  #scene.show #bubble { opacity: 1; transform: translateY(0); }
+  #bubble small { display: block; font-weight: 700; color: #5a6b7d; font-size: 12px; margin-top: 3px; }
+  #bubble::after {                               /* hard-bordered pixel tail */
+    content: ''; position: absolute; width: 11px; height: 11px;
+    background: #fff; border: 3px solid #16202b; border-top: 0; border-left: 0;
+    transform: rotate(45deg); margin-left: -6px; margin-top: 5px;
+  }
+
+  #stage { height: 230px; display: flex; align-items: flex-end; justify-content: center; }
+
+  /* side-view walk cycle: 4-frame strip (cell 226x418) stepped with steps(4) */
+  #walker {
+    width: 124px; height: 230px;
+    background-image: url(walk.png);
+    background-repeat: no-repeat;
+    background-size: 496px 230px;                /* 4 cells * 124px */
+    filter: drop-shadow(0 5px 4px rgba(0,0,0,.22));
+    display: none;
+  }
+  #walker.stepping { animation: step .55s steps(4) infinite; }
+  @keyframes step { from { background-position-x: 0; } to { background-position-x: -496px; } }
+  #walker.flip { transform: scaleX(-1); }        /* face right for the walk-out */
+
+  /* arrival pose: holding the glass of water */
+  #avatar {
+    height: 217px; width: auto; display: none;
+    filter: drop-shadow(0 5px 4px rgba(0,0,0,.22));
+  }
+  #scene.show #avatar { display: block; animation: bob .5s ease-in-out infinite alternate; }
+  @keyframes bob { from { transform: translateY(0) } to { transform: translateY(-4px) } }
+  /* reaction animations on click (override the idle bob) */
+  #scene.show #avatar.cheer { animation: cheer .45s ease 2; }
+  #scene.show #avatar.sad  { animation: sad .5s ease 2; }
+  @keyframes cheer { 0%,100% { transform: translateY(0) } 40% { transform: translateY(-16px) } 70% { transform: translateY(0) } }
+  @keyframes sad   { 0%,100% { transform: translateX(0) } 25% { transform: translateX(-5px) } 75% { transform: translateX(5px) } }
+  #bubble.happy { background: #eafff3; }
+  #bubble.meh   { background: #f2f4f7; }
+
+  /* pixel/retro buttons */
+  #actions { display: flex; gap: 10px; margin-top: 12px; opacity: 0; pointer-events: none; transition: opacity .25s; }
+  #scene.show #actions { opacity: 1; pointer-events: auto; }
+  button {
+    border: 3px solid #16202b; border-radius: 0;
+    padding: 9px 14px; font-size: 13px; font-weight: 800;
+    text-transform: uppercase; letter-spacing: .5px; cursor: pointer;
+    font-family: inherit;
+    box-shadow: 3px 3px 0 rgba(22,32,43,.3);
+  }
+  #had  { background: #2fb3ff; color: #fff; }
+  #snz  { background: #e7ecf1; color: #33445a; }
+  button:active { transform: translate(3px,3px); box-shadow: none; }  /* press-in */
+</style>
+</head>
+<body>
+  <div id="scene">
+    <div id="bubble"><span id="msg">Time for water 💧</span><small id="count"></small></div>
+    <div id="stage">
+      <div id="walker"></div>
+      <img id="avatar" src="buddy-hold.png" alt="water buddy" />
+    </div>
+    <div id="actions">
+      <button id="had">Had it 💧</button>
+      <button id="snz">Snooze 15m</button>
+    </div>
+  </div>
+  <script src="overlay.js"></script>
+</body>
+</html>
