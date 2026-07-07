@@ -7,7 +7,7 @@
   "author": "Vijay Chhuttani <vijay@zoop.one>",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/vijay-zoop/reminder-buddy.git"
+    "url": "git+https://github.com/Weekend-Labs/remi.git"
   },
   "main": "src/main.js",
   "scripts": {

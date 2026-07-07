@@ -60,8 +60,8 @@ wanders off), and your progress ticks up. That's the whole idea — make the nud
 ## Quickstart
 
 ```bash
-git clone https://github.com/vijay-zoop/reminder-buddy.git
-cd reminder-buddy
+git clone https://github.com/Weekend-Labs/remi.git
+cd remi
 npm install          # pulls Electron (dev dependency)
 
 npm start            # run the app — buddy appears on the reminder timer
