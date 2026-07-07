@@ -1,15 +1,27 @@
 const { app, BrowserWindow, Tray, Menu, ipcMain, screen, nativeImage } = require('electron');
 const path = require('path');
-const { load, saveState } = require('./state');
+const { load, saveState, saveConfig, isValidConfig } = require('./state');
 const { rollover, shouldRemind, markShown, applyAction } = require('./reminder');
 
 const WIN_W = 380;
 const WIN_H = 420;
 
+// Settings menu presets (each hours window is inherently valid: end > start).
+const INTERVAL_PRESETS = [30, 45, 60, 90];
+const HOURS_PRESETS = [
+  { start: '08:00', end: '16:00' },
+  { start: '09:00', end: '17:00' },
+  { start: '09:00', end: '18:00' },
+  { start: '10:00', end: '19:00' },
+];
+const GOAL_PRESETS = [6, 8, 10, 12];
+const SNOOZE_PRESETS = [10, 15, 30];
+
 let overlayWin;
 let tray;
 let config;
 let state;
+let loopTimer;
 
 function dataDir() {
   return path.join(app.getPath('userData'));
@@ -55,17 +67,66 @@ function triggerReminder() {
   });
 }
 
+// Merge a config patch, persist, and apply live (no app restart).
+// Presets are always valid; the guard catches a hand-corrupted config.json.
+function applyConfig(patch) {
+  const next = { ...config, ...patch };
+  if (!isValidConfig(next)) return;
+  config = next;
+  if (patch.goal != null) state = { ...state, goal: patch.goal }; // reflect goal today
+  saveConfig(dataDir(), config);
+  persist();      // saves state + refreshes tray
+  startLoop();    // restart interval loop so new settings take effect immediately
+}
+
+function settingsSubmenu() {
+  const hoursLabel = (h) => `${h.start}–${h.end}`;
+  return [
+    {
+      label: 'Interval',
+      submenu: INTERVAL_PRESETS.map((m) => ({
+        label: `${m} min`, type: 'radio', checked: config.intervalMinutes === m,
+        click: () => applyConfig({ intervalMinutes: m }),
+      })),
+    },
+    {
+      label: 'Work hours',
+      submenu: HOURS_PRESETS.map((h) => ({
+        label: hoursLabel(h), type: 'radio',
+        checked: config.workHours.start === h.start && config.workHours.end === h.end,
+        click: () => applyConfig({ workHours: { ...h } }),
+      })),
+    },
+    {
+      label: 'Daily goal',
+      submenu: GOAL_PRESETS.map((g) => ({
+        label: `${g} glasses`, type: 'radio', checked: config.goal === g,
+        click: () => applyConfig({ goal: g }),
+      })),
+    },
+    {
+      label: 'Snooze',
+      submenu: SNOOZE_PRESETS.map((m) => ({
+        label: `${m} min`, type: 'radio', checked: config.snoozeMinutes === m,
+        click: () => applyConfig({ snoozeMinutes: m }),
+      })),
+    },
+  ];
+}
+
 function updateTray() {
   if (!tray) return;
   tray.setTitle(` 💧 ${state.glassesHad}/${state.goal}`);
   tray.setContextMenu(Menu.buildFromTemplate([
     { label: `Today: ${state.glassesHad}/${state.goal} glasses`, enabled: false },
+    { label: `Every ${config.intervalMinutes}m · ${config.workHours.start}–${config.workHours.end}`, enabled: false },
     { type: 'separator' },
     { label: 'Remind now', click: triggerReminder },
     {
       label: state.paused ? 'Resume reminders' : 'Pause reminders',
       click: () => { state = { ...state, paused: !state.paused }; persist(); },
     },
+    { label: 'Settings', submenu: settingsSubmenu() },
     { type: 'separator' },
     { label: 'Quit', click: () => app.quit() },
   ]));
@@ -77,7 +138,8 @@ function createTray() {
 }
 
 function startLoop() {
-  setInterval(() => {
+  clearInterval(loopTimer); // idempotent: applyConfig() calls this to restart live
+  loopTimer = setInterval(() => {
     const now = Date.now();
     const rolled = rollover(state, now);
     if (rolled !== state) { state = rolled; persist(); }
