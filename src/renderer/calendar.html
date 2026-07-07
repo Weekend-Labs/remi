@@ -1,0 +1,80 @@
+<!doctype html>
+<html>
+<head>
+<meta charset="utf-8" />
+<style>
+  html, body {
+    margin: 0; height: 100%;
+    background: #e7ecf1;
+    color: #16202b;
+    font-family: "Chalkboard SE", "Comic Sans MS", -apple-system, sans-serif;
+    user-select: none;
+  }
+  #app { padding: 16px 18px 20px; box-sizing: border-box; }
+
+  /* pixel/retro header: month + nav arrows */
+  header {
+    display: flex; align-items: center; justify-content: space-between;
+    margin-bottom: 14px;
+  }
+  #title { font-size: 18px; font-weight: 800; letter-spacing: .3px; }
+  .nav {
+    border: 3px solid #16202b; border-radius: 0;
+    background: #fff; color: #16202b;
+    width: 34px; height: 30px; font-size: 15px; font-weight: 800;
+    cursor: pointer; font-family: inherit;
+    box-shadow: 3px 3px 0 rgba(22,32,43,.28);
+  }
+  .nav:active { transform: translate(3px,3px); box-shadow: none; }
+
+  /* weekday labels */
+  .grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 5px; }
+  .dow {
+    text-align: center; font-size: 11px; font-weight: 800;
+    color: #5a6b7d; text-transform: uppercase; letter-spacing: .5px;
+    padding-bottom: 2px;
+  }
+
+  /* day cells: hard-bordered pixel squares, tinted by water progress */
+  .cell {
+    aspect-ratio: 1 / 1; position: relative;
+    border: 3px solid #16202b; border-radius: 0;
+    background: #fff; box-shadow: 2px 2px 0 rgba(22,32,43,.22);
+    display: flex; align-items: flex-start; justify-content: flex-end;
+  }
+  .cell.pad { border: 0; background: transparent; box-shadow: none; }
+  .cell .num { font-size: 11px; font-weight: 800; padding: 3px 4px; color: #33445a; }
+  .cell.none    { background: #fff; }
+  .cell.partial { background: #b8e6ff; }              /* had some water */
+  .cell.full    { background: #2fb3ff; }              /* goal met — clearly distinct */
+  .cell.full .num { color: #fff; }
+  .cell.today   { outline: 3px solid #ff8a3d; outline-offset: -3px; }
+
+  /* legend */
+  .legend { display: flex; gap: 14px; margin-top: 16px; font-size: 11px; font-weight: 700; color: #33445a; }
+  .legend span { display: flex; align-items: center; gap: 5px; }
+  .swatch { width: 14px; height: 14px; border: 2px solid #16202b; }
+  .swatch.partial { background: #b8e6ff; }
+  .swatch.full { background: #2fb3ff; }
+  .swatch.none { background: #fff; }
+</style>
+</head>
+<body>
+  <div id="app">
+    <header>
+      <button class="nav" id="prev" aria-label="Previous month">◀</button>
+      <div id="title">—</div>
+      <button class="nav" id="next" aria-label="Next month">▶</button>
+    </header>
+    <div class="grid" id="dows"></div>
+    <div class="grid" id="days" style="margin-top:5px"></div>
+    <div class="legend">
+      <span><i class="swatch none"></i>none</span>
+      <span><i class="swatch partial"></i>partial</span>
+      <span><i class="swatch full"></i>goal met</span>
+    </div>
+  </div>
+  <script src="../calendar-grid.js"></script>
+  <script src="calendar.js"></script>
+</body>
+</html>

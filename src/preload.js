@@ -6,3 +6,8 @@ contextBridge.exposeInMainWorld('buddy', {
   action: (a) => ipcRenderer.send('reminder:action', a),
   hide: () => ipcRenderer.send('reminder:hide'),
 });
+
+// Calendar/progress window reads the per-day history map.
+contextBridge.exposeInMainWorld('remi', {
+  getHistory: () => ipcRenderer.invoke('history:get'),
+});

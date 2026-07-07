@@ -253,8 +253,12 @@ reaction → walk-out), snooze/progress persistence, work-hours, chime, packaged
    ends the run; each day judged by its own stored goal). Tray title shows `· 🔥N`
    when N>0; the glass that first reaches today's goal fires a one-off
    "🔥 N-day streak!" bubble (`reminder:celebrate` → overlay), no spam on later glasses.
-2. **Calendar view.** A tray "View progress" opens a small window with a month grid
-   coloured by goal completion (habit-tracker style), read from `history`. Medium.
+2. ✅ **Calendar view.** Tray **"View progress"** opens a framed, closable window
+   (`renderer/calendar.html` + `calendar.js`) showing a month grid, each day tinted by
+   `history[date]`: none (empty) / partial (light blue) / goal-met (strong blue), with
+   today outlined and prev/next month nav. Grid + tint are pure, tested helpers
+   (`src/calendar-grid.js`); history is read over IPC (`remi.getHistory` → `history:get`).
+   The window is separate from the overlay, so opening it never disturbs a reminder.
 3. ✅ **Settings (start/end time + frequency).** Tray **Settings** submenu with presets
    for interval (30/45/60/90m), work-hours windows, daily goal, and snooze — persisted
    to config.json and applied live (loop restarts, no app restart). Invalid combos are

@@ -1,6 +1,7 @@
 const test = require('node:test');
 const assert = require('node:assert');
 const { rollover, shouldRemind, markShown, applyAction, streak } = require('../src/reminder');
+const { monthGrid, dayLevel } = require('../src/calendar-grid');
 
 const config = {
   intervalMinutes: 60,
@@ -171,4 +172,34 @@ test('streak crosses a month boundary', () => {
     '2026-07-01': { had: 8, goal: 8 },
   };
   assert.equal(streak(history, '2026-07-01', 8), 2);
+});
+
+// --- Lane #2: calendar grid ---
+
+test('monthGrid pads leading blanks to the 1st weekday', () => {
+  // July 2026: the 1st is a Wednesday (weekday 3) → 3 leading nulls.
+  const cells = monthGrid(2026, 6);
+  assert.equal(cells[0], null);
+  assert.equal(cells[3].day, 1);
+  assert.equal(cells[3].date, '2026-07-01');
+});
+
+test('monthGrid covers every day of the month with zero-padded dates', () => {
+  const cells = monthGrid(2026, 6).filter(Boolean); // July has 31 days
+  assert.equal(cells.length, 31);
+  assert.equal(cells[30].date, '2026-07-31');
+});
+
+test('monthGrid handles February in a leap year', () => {
+  const days = monthGrid(2024, 1).filter(Boolean);  // Feb 2024 = 29 days
+  assert.equal(days.length, 29);
+  assert.equal(days[28].date, '2024-02-29');
+});
+
+test('dayLevel: none / partial / full', () => {
+  assert.equal(dayLevel(undefined), 'none');
+  assert.equal(dayLevel({ had: 0, goal: 8 }), 'none');
+  assert.equal(dayLevel({ had: 3, goal: 8 }), 'partial');
+  assert.equal(dayLevel({ had: 8, goal: 8 }), 'full');
+  assert.equal(dayLevel({ had: 9, goal: 8 }), 'full');
 });
