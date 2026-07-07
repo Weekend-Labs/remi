@@ -21,6 +21,7 @@ function defaultState(now, goal) {
     snoozeUntil: null,
     lastShownAt: 0,
     paused: false,
+    history: {}, // { "YYYY-MM-DD": { had, goal } } — old files without it migrate here
   };
 }
 

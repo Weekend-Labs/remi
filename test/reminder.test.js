@@ -66,3 +66,46 @@ test('rollover resets counter on a new day', () => {
 test('rollover leaves same-day state untouched', () => {
   assert.equal(rollover(base, noon), base);
 });
+
+// --- Lane #0: daily history ---
+
+test('rollover writes the finishing day into history before resetting', () => {
+  const nextDay = new Date(2026, 6, 8, 9, 0, 0).getTime();
+  const s = rollover({ ...base, glassesHad: 5, goal: 8 }, nextDay);
+  assert.deepEqual(s.history['2026-07-07'], { had: 5, goal: 8 });
+  assert.equal(s.glassesHad, 0);
+  assert.equal(s.date, '2026-07-08');
+});
+
+test('rollover retains prior days across multiple date changes', () => {
+  let s = { ...base, date: '2026-07-07', glassesHad: 6, goal: 8, history: {} };
+  s = rollover(s, new Date(2026, 6, 8, 9, 0, 0).getTime()); // finish 07-07
+  s = { ...s, glassesHad: 4 };
+  s = rollover(s, new Date(2026, 6, 9, 9, 0, 0).getTime()); // finish 07-08
+  assert.deepEqual(s.history['2026-07-07'], { had: 6, goal: 8 });
+  assert.deepEqual(s.history['2026-07-08'], { had: 4, goal: 8 });
+});
+
+test('rollover with no history starts a fresh map', () => {
+  const { history, ...noHistory } = { ...base, glassesHad: 2 };
+  const s = rollover(noHistory, new Date(2026, 6, 8, 9, 0, 0).getTime());
+  assert.deepEqual(s.history, { '2026-07-07': { had: 2, goal: 8 } });
+});
+
+test('had-it mirrors the new count into history[today]', () => {
+  const s = applyAction({ ...base, glassesHad: 3, history: {} }, 'had-it', noon, config);
+  assert.equal(s.glassesHad, 4);
+  assert.deepEqual(s.history['2026-07-07'], { had: 4, goal: 8 });
+});
+
+test('had-it carries the current goal into history', () => {
+  const s = applyAction({ ...base, glassesHad: 0, goal: 10, history: {} }, 'had-it', noon, config);
+  assert.equal(s.history['2026-07-07'].goal, 10);
+});
+
+test('applyAction on state without history does not lose today count', () => {
+  const { history, ...noHistory } = { ...base, glassesHad: 1 };
+  const s = applyAction(noHistory, 'had-it', noon, config);
+  assert.equal(s.glassesHad, 2);
+  assert.deepEqual(s.history['2026-07-07'], { had: 2, goal: 8 });
+});

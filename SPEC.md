@@ -169,9 +169,16 @@ Deliberately tiny. A timer + a JSON file. No database.
   "glassesHad": 3,
   "goal": 8,
   "snoozeUntil": null,
-  "paused": false
+  "paused": false,
+  "history": { "2026-07-06": { "had": 8, "goal": 8 } }
 }
 ```
+
+`history` is a per-day map `{ "YYYY-MM-DD": { had, goal } }` (Lane #0). `rollover`
+archives the finishing day's `{had,goal}` into `history` before resetting the
+counter; "Had it" mirrors today's running count into `history[today]`. Old state
+files without `history` migrate to `{}` on load without losing today's count.
+`glassesHad` remains the today mirror; `history[today].had` is the same value.
 
 ### Config (JSON, editable by hand in V1)
 ```json
@@ -237,9 +244,10 @@ reaction → walk-out), snooze/progress persistence, work-hours, chime, packaged
 **Remi.app** with a macOS icon. Rive character deferred to a future version.
 
 ### Next features (planned, in build order)
-0. **Foundation — daily history.** Change `state.json` from today-only to a
-   `history: { "YYYY-MM-DD": { had, goal } }` map. Unlocks streak + calendar cheaply.
-   (reminder.js/state.js change; keep `shouldRemind` untouched.)
+0. **Foundation — daily history.** ✅ Done. `state.json` carries
+   `history: { "YYYY-MM-DD": { had, goal } }`; `rollover` archives finishing days,
+   "Had it" mirrors today, old files migrate to `{}`. `shouldRemind` untouched.
+   Unlocks streak + calendar cheaply.
 1. **Streak days.** On hitting the daily goal, if yesterday also hit → `streak++`.
    Show in tray title + a one-off "🔥 N-day streak!" bubble. Small, sits on history.
 2. **Calendar view.** A tray "View progress" opens a small window with a month grid
