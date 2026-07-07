@@ -23,11 +23,13 @@ function isWithinWorkHours(now, config) {
   return mo >= parseHM(config.workHours.start) && mo < parseHM(config.workHours.end);
 }
 
-// New calendar day → reset the daily counter.
+// New calendar day → archive the finishing day into history, then reset the counter.
 function rollover(state, now) {
   const t = todayStr(now);
-  if (state.date !== t) return { ...state, date: t, glassesHad: 0, snoozeUntil: null };
-  return state;
+  if (state.date === t) return state;
+  const history = { ...(state.history || {}) };
+  history[state.date] = { had: state.glassesHad, goal: state.goal };
+  return { ...state, history, date: t, glassesHad: 0, snoozeUntil: null };
 }
 
 // Should the buddy appear right now?
@@ -50,6 +52,8 @@ function applyAction(state, action, now, config) {
   if (action === 'had-it') {
     s.glassesHad = state.glassesHad + 1;
     s.snoozeUntil = null;
+    // Mirror today's count into history so streak/calendar read one source of truth.
+    s.history = { ...(state.history || {}), [todayStr(now)]: { had: s.glassesHad, goal: s.goal } };
   } else if (action === 'snooze') {
     s.snoozeUntil = now + config.snoozeMinutes * 60 * 1000;
   }
