@@ -18,6 +18,7 @@ const GOAL_PRESETS = [6, 8, 10, 12];
 const SNOOZE_PRESETS = [10, 15, 30];
 
 let overlayWin;
+let calendarWin;
 let tray;
 let config;
 let state;
@@ -54,6 +55,22 @@ function createOverlay() {
   });
   overlayWin.setAlwaysOnTop(true, 'floating');
   overlayWin.loadFile(path.join(__dirname, 'renderer', 'index.html'));
+}
+
+// Progress calendar: a plain (framed, closable) window, separate from the overlay —
+// opening it never touches overlayWin. Singleton: re-focus if already open.
+function openCalendar() {
+  if (calendarWin && !calendarWin.isDestroyed()) { calendarWin.focus(); return; }
+  calendarWin = new BrowserWindow({
+    width: 420,
+    height: 500,
+    title: 'Remi — Progress',
+    resizable: false,
+    fullscreenable: false,
+    webPreferences: { preload: path.join(__dirname, 'preload.js') },
+  });
+  calendarWin.loadFile(path.join(__dirname, 'renderer', 'calendar.html'));
+  calendarWin.on('closed', () => { calendarWin = null; });
 }
 
 function triggerReminder() {
@@ -122,6 +139,7 @@ function updateTray() {
     { label: `Every ${config.intervalMinutes}m · ${config.workHours.start}–${config.workHours.end}`, enabled: false },
     { type: 'separator' },
     { label: 'Remind now', click: triggerReminder },
+    { label: 'View progress', click: openCalendar },
     {
       label: state.paused ? 'Resume reminders' : 'Pause reminders',
       click: () => { state = { ...state, paused: !state.paused }; persist(); },
@@ -167,6 +185,9 @@ ipcMain.on('reminder:action', (_e, action) => {
 ipcMain.on('reminder:hide', () => {
   if (overlayWin) overlayWin.hide();
 });
+
+// Calendar window pulls the per-day history map to tint the month grid.
+ipcMain.handle('history:get', () => state.history || {});
 
 // Tray app: don't quit when the (hidden) overlay window closes.
 app.on('window-all-closed', () => {});
