@@ -2,15 +2,16 @@
 
 <img src="assets/icon.png" alt="Remi app icon — a pixel-art buddy holding a glass of water" width="160" />
 
-# Remi 💧
+# Remi 💧🔔
 
-**A little pixel dude who walks onto your screen and hands you a glass of water.**
+**A little pixel dude who walks onto your screen and hands you a glass of water — and a delightful face for any notification you throw at him.**
 
 Because a notification is easy to ignore — a character strolling across your desktop is not.
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 [![Platform: macOS](https://img.shields.io/badge/Platform-macOS%20(arm64)-black.svg?logo=apple)](#-platform-note)
 [![Built with Electron](https://img.shields.io/badge/Built%20with-Electron-47848F.svg?logo=electron&logoColor=white)](https://www.electronjs.org/)
+[![Latest release](https://img.shields.io/github/v/release/Weekend-Labs/remi?label=release)](https://github.com/Weekend-Labs/remi/releases/latest)
 
 </div>
 
@@ -28,34 +29,38 @@ I miss recurring self-care reminders when I'm heads-down at work. A plain macOS
 notification slides in, I glance past it, it's gone. **A notification is easy to
 ignore. A character walking across your screen is not.**
 
-So Remi is a menu-bar app that, every so often during your work hours, sends a
-small pixel-art buddy walking in from the bottom-right corner holding a glass of
-water. He waits, you tap **Had it 💧** (he cheers) or **Snooze 15m** (he waves and
-wanders off), and your progress ticks up. That's the whole idea — make the nudge
-*delightful* instead of nagging, and you'll actually drink the water.
+So Remi is a menu-bar app that sends a small pixel-art buddy walking in from the corner
+holding a glass of water. He waits, you tap **Had it 💧** (he cheers) or **Snooze 15m**
+(he sulks off), and your progress ticks up. That's v0.1 — make the nudge *delightful*
+instead of nagging, and you'll actually drink the water.
+
+**v0.2 grows him up:** the same buddy is now a face for *any* notification — a meeting, a
+Slack DM that needs a reply, an email worth your attention — driven by a tiny local API
+that cron jobs and AI agents can call. Remi stays dumb and delightful; the smarts live
+outside. See [**Reminders vs Notifications**](docs/CONCEPTS.md) for the mental model.
 
 ## Features
 
-- **💧 Water reminders** — on a timer, only inside your configured work hours.
-- **🚶 A buddy who walks in** — 4-frame side-view walk cycle steps him into the
-  corner; he arrives holding a glass, breathes with an idle bob, and walks back out.
-  A soft two-note chime plays on entrance (synthesized, no audio file).
-- **✅ Snooze / Had-it** — two buttons. "Had it" increments today's count and plays a
-  cheer; "Snooze" (or a 30s no-answer auto-dismiss) sets a soft snooze and he leaves.
-- **📅 Daily history** — every day's `{ had, goal }` is archived in `state.json`, so
-  progress survives across days.
-- **🔥 Streaks** — consecutive goal-met days show as `· 🔥5` in the menu-bar title,
-  and the glass that *first* reaches today's goal fires a one-off "🔥 N-day streak!"
-  celebration bubble.
-- **🗓️ Calendar view** — the tray **View progress** item opens a month grid, each day
-  tinted by how close you got: empty / partial / goal-met, with today outlined and
-  prev/next month navigation.
-- **⚙️ Live Settings submenu** — change interval (30/45/60/90m), work-hours window,
-  daily goal, and snooze length right from the tray. Changes persist to `config.json`
-  and apply immediately — no app restart, the reminder loop just re-arms.
-- **🪶 Stays out of your way** — a frameless, transparent, always-on-top corner window
-  that's hidden ~99% of the time, never steals focus, and lives in the menu bar with
-  no dock icon.
+**The water buddy**
+- **💧 Water reminders** on a timer, only inside your configured work hours.
+- **🚶 A buddy who walks in** — 4-frame walk cycle into the corner, arrives holding a
+  glass, breathes with an idle bob, walks back out. Soft two-note chime on entrance.
+- **✅ Snooze / Had-it** — two buttons (or a 30s no-answer soft snooze).
+- **📅 Daily history**, **🔥 streaks** (shown in the menu-bar title + a one-off
+  "🔥 N-day streak!" bubble), and a **🗓️ calendar view** (tray → *View progress*, a
+  month grid tinted by how close you got each day).
+- **⚙️ Live Settings submenu** — interval / work-hours / goal / snooze, applied instantly.
+
+**The notification framework** *(new in v0.2)*
+- **🔔 Local notification API** — a loopback HTTP server (`127.0.0.1`, token-auth) any
+  producer can call. Two kinds: **`info` peeks** (buddy leans in from the edge, says one
+  thing, retracts) and **`action`** notifications (message + buttons whose result is
+  returned to the caller). See [Notifications](#-notifications--remi-as-a-local-api).
+- **🎭 Expressive poses** — Remi reacts per state: 😔 sad when you snooze water,
+  🎉 fists-up when you drink it, 👋 hand-up when peeking in, 🧍 hands-folded for an action ask.
+- **🛠️ `remi-notify` CLI + client sample + a local test UI** to drive the API by hand.
+- **🪶 Stays out of your way** — frameless, transparent, always-on-top corner window,
+  hidden ~99% of the time, never steals focus, lives in the menu bar with no dock icon.
 
 ## Quickstart
 
@@ -65,96 +70,27 @@ cd remi
 npm install          # pulls Electron (dev dependency)
 
 npm start            # run the app — buddy appears on the reminder timer
-npm run demo         # same, but the buddy walks in ~2.5s after launch so you
-                     #   can see the whole animation without waiting an hour
-npm test             # run the pure-logic unit tests (node --test, 34 tests)
+npm run demo         # same, but the buddy walks in ~2.5s after launch (no waiting)
+npm test             # pure-logic + API unit/e2e tests (node --test, 59 tests)
 npm run package      # build Remi.app into dist/ (macOS arm64, with the .icns icon)
+
+# poke the notification API (with Remi running):
+node examples/test-ui.js       # a clickable test page at http://localhost:7788
+node examples/notify-client.js # or drive it from the command line
 ```
 
-`npm start` puts Remi in your **menu bar** (no dock icon, no window). Click the
-`💧 0/8` title to open the tray menu — **Remind now**, **View progress**, **Pause**,
-**Settings**, **Quit**. Use `npm run demo` the first time so you don't have to wait
-for the interval to fire.
+Or just [**download the latest release**](https://github.com/Weekend-Labs/remi/releases/latest)
+and drag `Remi.app` to `/Applications` (unsigned — first launch: right-click → Open, or
+`xattr -cr /Applications/Remi.app`).
 
-## A 30-second architecture tour
+`npm start` puts Remi in your **menu bar** (no dock icon). Click the `💧 0/8` title for
+the tray menu — **Remind now**, **View progress**, **Pause**, **Settings**, **Test peek**, **Quit**.
 
-Remi is deliberately tiny: a timer, two JSON files, and some pixel sprites. No
-database, no framework beyond Electron, no animation library.
+## 🔔 Notifications — Remi as a local API
 
-```
-┌─ main process (src/main.js) ──────────────────────────────┐
-│  setInterval every 30s → rollover + shouldRemind?          │
-│  Tray menu (title + Settings submenu + calendar/pause)     │
-│  Owns two BrowserWindows:                                  │
-│    • overlay  → transparent corner window (the buddy)      │
-│    • calendar → framed month-grid window (View progress)   │
-└──────────┬───────────────────────────────┬────────────────┘
-           │ IPC (via src/preload.js)       │ IPC
-           ▼                                ▼
-  ┌─ overlay renderer ──────────┐   ┌─ calendar renderer ────────┐
-  │ renderer/index.html + CSS   │   │ renderer/calendar.html     │
-  │ renderer/overlay.js         │   │ renderer/calendar.js       │
-  │   walk-in → idle+bubble →   │   │   month grid tinted by     │
-  │   react → walk-out          │   │   history[date]            │
-  │ sprites: walk.png,          │   └────────────────────────────┘
-  │          buddy-hold.png     │
-  └─────────────────────────────┘
-
-  Pure, tested logic (no Electron, no I/O):
-    src/reminder.js      rollover · shouldRemind · applyAction · streak · todayStr
-    src/calendar-grid.js monthGrid · dayLevel
-    src/state.js         load/save state.json + config.json · isValidConfig
-    test/*.test.js       node --test  (reminder + settings + calendar grid)
-```
-
-The split that matters: **all the interesting logic is pure functions** in
-`reminder.js`, `calendar-grid.js`, and `state.js`, tested with plain `node --test`
-and zero Electron in the loop. `main.js` is just wiring — timer, tray, windows, IPC.
-The renderer is HTML/CSS sprite animation. That's why the test suite runs in
-milliseconds and stays green regardless of the UI.
-
-### Where your data lives
-
-State and config are plain JSON under Electron's per-app `userData` directory
-(`app.getPath('userData')`). On macOS that's:
-
-```
-~/Library/Application Support/Remi/state.json    # date, glassesHad, goal, snooze, paused, history{}
-~/Library/Application Support/Remi/config.json   # intervalMinutes, workHours, snoozeMinutes, autoDismissSeconds, goal
-```
-
-Both files are created with sane defaults on first run and migrate forward if a
-field is missing — you can hand-edit them, but the **Settings** submenu covers
-everything without touching a file. Delete them to reset.
-
-## 🍎 Platform note
-
-**macOS on Apple Silicon (arm64) only, for now.** The `npm run package` script builds
-a `darwin/arm64` bundle (`Remi.app`) with a macOS `.icns` icon. Nothing in the code is
-deeply macOS-specific — it's Electron — but the transparent, click-through,
-always-on-top corner overlay is only exercised and tested on macOS, and the packaging
-target is hard-coded to Apple Silicon. Intel-Mac / Windows / Linux builds would need a
-tweak to the `package` script and a pass over the overlay window flags. PRs welcome.
-
-## Make it *your* buddy
-
-The character is me, rendered as Stardew-style pixel art from a few selfies. **You can
-replace it with anyone** — a photo of you, your cat, a robot — using the same repeatable
-art pipeline (AI image → magenta-keyed sprite sheet → walk strip + icon). The whole thing
-is documented, copy-paste prompts and all, in:
-
-### 👉 [**docs/DESIGN-YOUR-OWN-BUDDY.md**](docs/DESIGN-YOUR-OWN-BUDDY.md)
-
-## 🔭 Roadmap — from water buddy to notification framework
-
-v0.1 is a water reminder. The bigger idea: **Remi is a delightful face for *any*
-notification** — meetings, a Slack DM that actually needs a reply, an email worth your
-attention — while staying a small, dumb, local app. The intelligence lives *outside*;
-Remi just knows how to make a character peek in, speak, and (optionally) collect your answer.
-
-**The architecture:** Remi becomes a **local notification daemon** with a loopback HTTP
-API (`127.0.0.1`, token-auth — never exposed to the network). Anything can be a
-*producer* — a cron job, a shell script, or an AI agent — and they all speak the same call:
+Remi runs a **loopback-only HTTP server** (`127.0.0.1`, bearer-token, never exposed to the
+network). Any *producer* — a cron job, a shell script, or an AI agent — fires a notification
+and (for `action`s) hears your reply back:
 
 ```http
 POST http://127.0.0.1:7777/notify      Authorization: Bearer <token>
@@ -165,35 +101,119 @@ POST http://127.0.0.1:7777/notify      Authorization: Bearer <token>
 GET  http://127.0.0.1:7777/notify/n_123 → { "reply": "draft" }   # the producer hears back and acts
 ```
 
-**Two notification kinds**, one primitive:
-- **`info` (peek)** — the buddy leans in, delivers, strolls off. Fire-and-forget. *"Standup in 5."* · *"Riya 👍'd your message."*
-- **`action`** — the water pattern generalized: a message + buttons (or a quick-reply field) that **returns your choice to the producer**, so an agent can then send the reply / archive the mail / open the meeting.
+- **`info` (peek)** — buddy leans in, delivers, strolls off. Fire-and-forget. *"Standup in 5."*
+- **`action`** — a message + buttons; your choice is **returned to the producer**, so an
+  agent can then send the reply / archive the mail / open the meeting.
 
-**Producers — cron *and* agents, interchangeable behind that API:**
+The token is generated on first run into `config.json`. Grab it, then use
+[`bin/remi-notify`](bin/remi-notify), the [client sample](examples/notify-client.js), or the
+[test UI](examples/test-ui.js). Full contract: [F001 spec](docs/specs/001-notification-framework.md) ·
+mental model: [docs/CONCEPTS.md](docs/CONCEPTS.md).
 
-| Phase | What ships | Powered by |
-|-------|-----------|------------|
-| **3 · Notification framework** | The loopback API + `info`/`action` types + reply channel. Water refactored to ride it (proves the seam). | core app |
-| **4 · Producers & a skill** | A `remi-notify` skill/CLI wrapper + a cron example (meetings from your calendar). | cron / any script |
-| **5 · Smart triage** | An agent reads Slack & email, **filters the noise**, and only interrupts you for DMs that need a quick reply or mail that genuinely matters. | **Claude / Codex** agent |
-| **6 · Presence-aware delivery** | Buddy when you're at the desk; **WhatsApp / push notification when you're away or locked**. | presence + WhatsApp bridge |
+**The one rule:** Remi stays *dumb* — no Gmail/Slack SDKs in the app. Every "is this worth
+interrupting me?" decision is the producer's (the model's) job. Remi is just the megaphone.
 
-**Reminder types on deck:** 📅 meetings · 💬 pending Slack DMs · 📧 reply-worthy email · ⏰ ad-hoc reminders.
+## Make it *your* buddy
 
-**Design guarantees we're keeping:**
-- Remi stays *dumb* — no Gmail/Slack SDKs in the app itself; that logic lives in producers.
-- The API is **loopback + token only**. It can pop UI and read your replies, so it never binds to a public interface.
-- Every smart decision ("is this worth interrupting me?") is the **model's** job — Remi is the megaphone, the agent is the filter.
+The character is me, rendered as Stardew-style pixel art from a few selfies. **You can
+replace it with anyone** — a photo of you, your cat, a robot — with the same repeatable
+pipeline (AI image → magenta-keyed sprite → cutout), including per-mood poses. Copy-paste
+prompts and all in:
 
-> 💡 This is a design direction, not a promise of dates. Ideas and PRs welcome — the
-> whole point of the framework is that a new reminder type is *just another producer*.
+### 👉 [**docs/DESIGN-YOUR-OWN-BUDDY.md**](docs/DESIGN-YOUR-OWN-BUDDY.md)
+
+## 🔭 Roadmap
+
+**Shipped in v0.2** — the notification framework: loopback API, `info` peeks + `action`
+replies, `remi-notify` CLI, client sample + test UI, and expressive per-state poses.
+
+**Next** — the framework's whole point is that a new reminder type is *just another producer*:
+
+| | What | Powered by |
+|-|------|------------|
+| **Skill + MCP** | Thin wrappers so an AI agent can fire notifications | agent tooling |
+| **Smart triage** | An agent reads Slack & email, **filters the noise**, only interrupts you for what matters | **Claude / Codex** |
+| **Presence-aware delivery** | Buddy at the desk; **WhatsApp / push when you're away or locked** | presence + bridge |
+
+**Reminder types on deck:** 📅 meetings · 💬 pending Slack DMs · 📧 reply-worthy email · ⏰ ad-hoc.
+
+> 💡 A design direction, not a promise of dates. Ideas and PRs welcome.
 
 ## More docs
 
 - [**docs/CONCEPTS.md**](docs/CONCEPTS.md) — **Reminders vs Notifications** — the core mental model (start here).
 - [**docs/DESIGN-YOUR-OWN-BUDDY.md**](docs/DESIGN-YOUR-OWN-BUDDY.md) — build your own character (AI prompts + the `tools/*.py` pipeline).
-- [**SPEC.md**](SPEC.md) — the product story: goal, scope, stack decisions, roadmap.
-- [**BACKLOG.md**](BACKLOG.md) — the code map and how the post-v0.1 features were scoped.
+- [**docs/specs/**](docs/specs/) — feature specs (F001 notification framework, F002 Buddy V2).
+- [**SPEC.md**](SPEC.md) — the product story: goal, scope, stack decisions.
+- [**BACKLOG.md**](BACKLOG.md) — the code map and how features were scoped.
+
+## 🍎 Platform note
+
+**macOS on Apple Silicon (arm64) only, for now.** The `npm run package` script builds a
+`darwin/arm64` bundle (`Remi.app`) with a macOS `.icns` icon. Nothing in the code is deeply
+macOS-specific — it's Electron — but the transparent, click-through, always-on-top corner
+overlay is only exercised on macOS, and the packaging target is hard-coded to Apple Silicon.
+Other targets would need a tweak to the `package` script and a pass over the overlay window
+flags. PRs welcome.
+
+---
+
+## Under the hood — a 30-second architecture tour
+
+Remi is deliberately tiny: a timer, a loopback API, two JSON files, and some pixel sprites.
+No database, no framework beyond Electron, no animation library.
+
+```
+┌─ main process (src/main.js) ──────────────────────────────┐
+│  setInterval every 30s → rollover + shouldRemind?          │
+│  Loopback notification API (src/api.js, src/notify.js)     │
+│  Tray menu (title + Settings submenu + calendar/pause)     │
+│  Owns two BrowserWindows:                                  │
+│    • overlay  → transparent corner window (the buddy)      │
+│    • calendar → framed month-grid window (View progress)   │
+└──────────┬───────────────────────────────┬────────────────┘
+           │ IPC (via src/preload.js)       │ IPC
+           ▼                                ▼
+  ┌─ overlay renderer ──────────┐   ┌─ calendar renderer ────────┐
+  │ renderer/index.html + CSS   │   │ renderer/calendar.html     │
+  │ renderer/overlay.js         │   │ renderer/calendar.js       │
+  │   water: walk-in→react→out  │   │   month grid tinted by     │
+  │   peek / action / poses     │   │   history[date]            │
+  │ sprites: walk.png +         │   └────────────────────────────┘
+  │   buddy-{hold,sad,peek,     │
+  │   action,cheer}.png         │
+  └─────────────────────────────┘
+              ▲
+   producers  │ POST /notify  (cron · scripts · agents)
+   ───────────┘ over 127.0.0.1 loopback + token
+
+  Pure, tested logic (no Electron, no I/O):
+    src/reminder.js      rollover · shouldRemind · applyAction · streak · todayStr
+    src/calendar-grid.js monthGrid · dayLevel
+    src/notify.js        request validation · queue + lifecycle · ttl
+    src/state.js         load/save state.json + config.json · isValidConfig
+    test/*.test.js       node --test  (reminder + settings + calendar + notify + API e2e)
+```
+
+The split that matters: **all the interesting logic is pure functions** in `reminder.js`,
+`calendar-grid.js`, `notify.js`, and `state.js`, tested with plain `node --test` and zero
+Electron in the loop. `main.js` is just wiring — timer, tray, windows, API, IPC. The renderer
+is HTML/CSS sprite animation. That's why the suite runs in milliseconds and stays green
+regardless of the UI.
+
+### Where your data lives
+
+State and config are plain JSON under Electron's per-app `userData` directory
+(`app.getPath('userData')`). On macOS:
+
+```
+~/Library/Application Support/Remi/state.json    # date, glassesHad, goal, snooze, paused, history{}
+~/Library/Application Support/Remi/config.json   # intervalMinutes, workHours, snoozeMinutes, goal, apiToken, apiPort
+```
+
+Both are created with sane defaults on first run and migrate forward if a field is missing —
+you can hand-edit them, but the **Settings** submenu covers everything. `apiToken` is the
+bearer token for the notification API. Delete the files to reset.
 
 ## License
 
