@@ -27,12 +27,20 @@ function render() {
   for (const cell of monthGrid(year, month)) {
     const el = document.createElement('div');
     if (!cell) { el.className = 'cell pad'; daysEl.appendChild(el); continue; }
-    el.className = `cell ${dayLevel(history[cell.date])}`;
+    const entry = history[cell.date];
+    el.className = `cell ${dayLevel(entry)}`;
     if (cell.date === todayStr) el.classList.add('today');
     const num = document.createElement('span');
     num.className = 'num';
     num.textContent = cell.day;
     el.appendChild(num);
+    const count = dayCount(entry);
+    if (count) {
+      const c = document.createElement('span');
+      c.className = 'count';
+      c.textContent = count;
+      el.appendChild(c);
+    }
     daysEl.appendChild(el);
   }
 }

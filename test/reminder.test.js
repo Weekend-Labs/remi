@@ -1,7 +1,7 @@
 const test = require('node:test');
 const assert = require('node:assert');
 const { rollover, shouldRemind, markShown, applyAction, streak } = require('../src/reminder');
-const { monthGrid, dayLevel } = require('../src/calendar-grid');
+const { monthGrid, dayLevel, dayCount } = require('../src/calendar-grid');
 
 const config = {
   intervalMinutes: 60,
@@ -202,4 +202,12 @@ test('dayLevel: none / partial / full', () => {
   assert.equal(dayLevel({ had: 3, goal: 8 }), 'partial');
   assert.equal(dayLevel({ had: 8, goal: 8 }), 'full');
   assert.equal(dayLevel({ had: 9, goal: 8 }), 'full');
+});
+
+test('dayCount: had/goal for days with water, null for empty days', () => {
+  assert.equal(dayCount(undefined), null);           // no data → clean cell
+  assert.equal(dayCount({ had: 0, goal: 8 }), null); // drank nothing → no "0/8"
+  assert.equal(dayCount({ had: 3, goal: 8 }), '3/8');
+  assert.equal(dayCount({ had: 8, goal: 8 }), '8/8');
+  assert.equal(dayCount({ had: 5 }), '5');           // no stored goal → just the count
 });
