@@ -33,6 +33,20 @@ function persist() {
   updateTray();
 }
 
+// Bottom-right corner of the display the cursor is currently on — so on
+// multi-monitor setups the buddy walks in from the corner of the active screen,
+// not mid-screen. Recomputed on every show (triggerReminder), not just at startup.
+function anchorOverlay() {
+  if (!overlayWin) return;
+  const { workArea } = screen.getDisplayNearestPoint(screen.getCursorScreenPoint());
+  overlayWin.setBounds({
+    x: workArea.x + workArea.width - WIN_W,
+    y: workArea.y + workArea.height - WIN_H,
+    width: WIN_W,
+    height: WIN_H,
+  });
+}
+
 function createOverlay() {
   const { workArea } = screen.getPrimaryDisplay();
   overlayWin = new BrowserWindow({
@@ -77,6 +91,7 @@ function triggerReminder() {
   if (!overlayWin || overlayWin.isVisible()) return;
   state = markShown(state, Date.now());
   persist();
+  anchorOverlay(); // land in the corner of whichever display is active now
   overlayWin.showInactive();
   overlayWin.webContents.send('reminder:show', {
     glassesHad: state.glassesHad,
