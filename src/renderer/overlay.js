@@ -20,6 +20,25 @@ function clearTimers() {
   clearTimeout(outTimer); clearTimeout(reactTimer);
 }
 
+// ── Pose registry (art-ready, with fallback) ─────────────────────────────
+// state → sprite. The pose files don't exist yet; poseSrc returns the mapped
+// name and setPose's onerror swaps a missing sprite for buddy-hold.png — so
+// with no pose art present the buddy just stays on hold (visually unchanged),
+// and this merges safely before the art lands.
+const FALLBACK_POSE = 'buddy-hold.png';
+const POSES = {
+  hold:   'buddy-hold.png',
+  sad:    'buddy-sad.png',    // water snooze/deny
+  cheer:  'buddy-cheer.png',  // water "Had it"
+  peek:   'buddy-peek.png',   // info peek
+  action: 'buddy-action.png', // action overlay
+};
+function poseSrc(name) { return POSES[name] || FALLBACK_POSE; }
+function setPose(img, name) {
+  img.onerror = () => { img.onerror = null; img.src = FALLBACK_POSE; }; // missing pose → hold
+  img.src = poseSrc(name);
+}
+
 // Light two-note chime on walk-in — synthesized, no audio file needed.
 let audioCtx;
 function playChime() {
@@ -48,6 +67,7 @@ function showReminder(data = {}) {
   count.textContent = `${glassesHad}/${goal} today`;
   bubble.classList.remove('happy', 'meh');
   avatar.classList.remove('cheer', 'sad');
+  setPose(avatar, 'hold'); // reset pose for the fresh reminder
   document.getElementById('actions').style.pointerEvents = ''; // clear the guard from a prior reaction
   clearTimers();
   playChime(); // light sound as he walks in
@@ -87,6 +107,7 @@ function react(action) {
   bubble.classList.add(had ? 'happy' : 'meh');
   document.getElementById('actions').style.pointerEvents = 'none'; // no double-click
   avatar.classList.add(had ? 'cheer' : 'sad');
+  setPose(avatar, had ? 'cheer' : 'sad');
   reactTimer = setTimeout(walkOut, REACT_MS);
 }
 
@@ -113,6 +134,7 @@ function showNotification(data) {
   count.textContent = data.detail || '';
   bubble.classList.remove('happy', 'meh');
   avatar.classList.remove('cheer', 'sad');
+  setPose(avatar, 'action');
   const acts = (data.actions || []).slice(0, 2);
   [had, snz].forEach((b, i) => {
     if (acts[i]) { b.textContent = acts[i].label; b.dataset.result = acts[i].result; b.style.display = ''; }
@@ -169,8 +191,7 @@ function celebrate(data = {}) {
 // ── PEEK (info notification) ──────────────────────────────────────────────
 // Separate path from the water walk-in: the buddy leans in from a screen edge,
 // says one thing, and retracts. No buttons, auto-dismisses. Swap the art by
-// changing PEEK_SPRITE; tilt/clip are CSS vars on #peek (see index.html).
-const PEEK_SPRITE = 'buddy-hold.png'; // richer mood/pose sheets drop in here later
+// changing the 'peek' pose (see POSES); tilt/clip are CSS vars on #peek.
 const PEEK_HOLD_MS = 4500;            // peek in → hold → retract
 const PEEK_OUT_MS = 500;              // matches #peekBuddy transition
 const peek = document.getElementById('peek');
@@ -185,7 +206,7 @@ function showPeek(data = {}) {
   peekMsg.textContent = message;
   peekDetail.textContent = detail;
   peekDetail.style.display = detail ? '' : 'none';
-  if (peekBuddy.getAttribute('src') !== PEEK_SPRITE) peekBuddy.src = PEEK_SPRITE;
+  setPose(peekBuddy, 'peek');
   peek.classList.remove('show', 'left', 'right');
   peek.classList.add(side === 'left' ? 'left' : 'right');
   void peek.offsetWidth;              // reflow so the lean-in replays
