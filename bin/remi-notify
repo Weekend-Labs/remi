@@ -1,0 +1,100 @@
+#!/usr/bin/env node
+// remi-notify — fire a Remi notification from any producer (cron, script, agent).
+// Reads token + port from Remi's config.json; override with flags/env. No deps.
+//
+//   remi-notify -m "Standup in 5"
+//   remi-notify --type action -m "Reply to Sam?" --action "Draft:draft" --action "Snooze:snooze"
+//   remi-notify -m "hi" --token abc --port 7777
+
+const http = require('http');
+const fs = require('fs');
+const os = require('os');
+const path = require('path');
+
+function configDir() {
+  // Mirrors Electron's app.getPath('userData') for productName "Remi".
+  if (process.platform === 'darwin') return path.join(os.homedir(), 'Library', 'Application Support', 'Remi');
+  if (process.platform === 'win32') return path.join(process.env.APPDATA || '', 'Remi');
+  return path.join(process.env.XDG_CONFIG_HOME || path.join(os.homedir(), '.config'), 'Remi');
+}
+
+function readConfig(file) {
+  try { return JSON.parse(fs.readFileSync(file, 'utf8')); } catch { return {}; }
+}
+
+// Minimal flag parser: --key value, -m value, repeatable --action.
+function parseArgs(argv) {
+  const out = { actions: [] };
+  const alias = { '-m': '--message' };
+  for (let i = 0; i < argv.length; i++) {
+    const k = alias[argv[i]] || argv[i];
+    const v = argv[i + 1];
+    switch (k) {
+      case '--type': out.type = v; i++; break;
+      case '--kind': out.kind = v; i++; break;
+      case '--message': out.message = v; i++; break;
+      case '--detail': out.detail = v; i++; break;
+      case '--ttl': out.ttl = Number(v); i++; break;
+      case '--priority': out.priority = v; i++; break;
+      case '--action': out.actions.push(v); i++; break; // "Label:result"
+      case '--token': out.token = v; i++; break;
+      case '--port': out.port = Number(v); i++; break;
+      case '--config': out.config = v; i++; break;
+      case '-h': case '--help': out.help = true; break;
+      default: break;
+    }
+  }
+  return out;
+}
+
+const HELP = `remi-notify — fire a Remi notification
+  -m, --message <text>   speech-bubble text (required)
+  --type info|action     default: info (action if --action given)
+  --kind <tag>           producer tag (meeting|slack|email|...)
+  --detail <text>        optional sub-line
+  --action "Label:result"  add a button (repeatable, max 2); implies --type action
+  --ttl <seconds>        auto-expire (default 30 info / 120 action)
+  --priority low|normal|high
+  --token <t> --port <n> --config <path>   override config.json / env
+Env: REMI_TOKEN, REMI_PORT, REMI_CONFIG`;
+
+function main() {
+  const a = parseArgs(process.argv.slice(2));
+  if (a.help || !a.message) { console.log(HELP); process.exit(a.help ? 0 : 1); }
+
+  const cfgFile = a.config || process.env.REMI_CONFIG || path.join(configDir(), 'config.json');
+  const cfg = readConfig(cfgFile);
+  const token = a.token || process.env.REMI_TOKEN || cfg.apiToken;
+  const port = a.port || Number(process.env.REMI_PORT) || cfg.apiPort || 7777;
+  if (!token) { console.error(`No API token. Start Remi once, or pass --token (looked in ${cfgFile}).`); process.exit(1); }
+
+  const actions = a.actions.map((s) => {
+    const idx = s.indexOf(':');
+    return idx < 0 ? { label: s, result: s } : { label: s.slice(0, idx), result: s.slice(idx + 1) };
+  });
+  const body = JSON.stringify({
+    type: a.type || (actions.length ? 'action' : 'info'),
+    kind: a.kind, message: a.message, detail: a.detail,
+    actions: actions.length ? actions : undefined,
+    ttl: a.ttl, priority: a.priority,
+  });
+
+  const req = http.request(
+    { host: '127.0.0.1', port, method: 'POST', path: '/notify', agent: false,
+      headers: { 'Content-Type': 'application/json', 'Content-Length': Buffer.byteLength(body),
+        Authorization: `Bearer ${token}` } },
+    (res) => {
+      let out = '';
+      res.on('data', (c) => (out += c));
+      res.on('end', () => {
+        process.stdout.write(out + '\n');
+        process.exit(res.statusCode >= 200 && res.statusCode < 300 ? 0 : 1);
+      });
+    },
+  );
+  req.on('error', (e) => { console.error(`Could not reach Remi on 127.0.0.1:${port} — is it running? (${e.message})`); process.exit(1); });
+  req.write(body);
+  req.end();
+}
+
+main();

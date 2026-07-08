@@ -1,7 +1,9 @@
 const { app, BrowserWindow, Tray, Menu, ipcMain, screen, nativeImage } = require('electron');
 const path = require('path');
+const crypto = require('crypto');
 const { load, saveState, saveConfig, isValidConfig } = require('./state');
 const { rollover, shouldRemind, markShown, applyAction, streak, todayStr } = require('./reminder');
+const { startNotifyApi } = require('./api');
 
 const WIN_W = 380;
 const WIN_H = 420;
@@ -23,6 +25,7 @@ let tray;
 let config;
 let state;
 let loopTimer;
+let notifyApi;
 
 function dataDir() {
   return path.join(app.getPath('userData'));
@@ -96,6 +99,31 @@ function triggerReminder() {
   overlayWin.webContents.send('reminder:show', {
     glassesHad: state.glassesHad,
     goal: state.goal,
+  });
+}
+
+// F001: hand a notification to the overlay. The renderer shows type:'action' via the
+// existing buttons (peek lane renders type:'info'). Coexists with the water path for now.
+function dispatchNotification(payload) {
+  if (!overlayWin) return;
+  anchorOverlay();
+  overlayWin.showInactive();
+  overlayWin.webContents.send('notification:show', payload);
+}
+
+// Ensure a bearer token + port exist in config.json, then start the loopback API.
+function startNotificationApi() {
+  if (!config.apiToken) {
+    config = { ...config, apiToken: crypto.randomBytes(24).toString('hex'), apiPort: config.apiPort || 7777 };
+    saveConfig(dataDir(), config);
+    console.log(`[remi] generated API token (in config.json): ${config.apiToken}`); // printed once, on first run
+  }
+  notifyApi = startNotifyApi({
+    config,
+    version: app.getVersion(),
+    dispatch: dispatchNotification,
+    presence: () => true, // ponytail: stub true until F001 phase 6 wires real presence
+    log: console.log,
   });
 }
 
@@ -189,6 +217,7 @@ app.whenReady().then(() => {
   createOverlay();
   createTray();
   startLoop();
+  startNotificationApi();
   // `npm run demo` → buddy walks in on launch so you can see the overlay without waiting
   if (process.env.RB_DEMO) setTimeout(triggerReminder, 2500);
 });
@@ -207,6 +236,11 @@ ipcMain.on('reminder:action', (_e, action) => {
 ipcMain.on('reminder:hide', () => {
   if (overlayWin) overlayWin.hide();
 });
+
+// F001: renderer reports the user's answer to an `action` notification (button click
+// → reply; auto-dismiss/close → dismiss). Resolves the queued notification + its reply.
+ipcMain.on('notification:reply', (_e, { id, result }) => notifyApi?.resolve(id, result));
+ipcMain.on('notification:dismiss', (_e, { id }) => notifyApi?.cancel(id));
 
 // Calendar window pulls the per-day history map to tint the month grid.
 ipcMain.handle('history:get', () => state.history || {});
