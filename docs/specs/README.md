@@ -7,3 +7,4 @@ Design contracts for larger features — the "what and why" before the code. Eac
 | ID | Feature | Status |
 |----|---------|--------|
 | [F001](001-notification-framework.md) | Reminder & Notification Framework | 🟡 Proposed |
+| [F002](002-buddy-v2-rive.md) | Buddy V2 — Expressive Rive Avatar | 🟡 Proposed |
