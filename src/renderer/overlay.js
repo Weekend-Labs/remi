@@ -159,7 +159,9 @@ function showNotification(data) {
     walker.style.display = 'none';
     avatar.style.display = 'block';
     scene.classList.add('show');
-    dismissTimer = setTimeout(() => resolveNotify(null), AUTO_DISMISS_MS); // no answer → dismiss
+    // Honor the producer's ttl (seconds) so a 120 s action isn't silently capped at 30 s.
+    const ttlMs = data.ttl > 0 ? data.ttl * 1000 : AUTO_DISMISS_MS;
+    dismissTimer = setTimeout(() => resolveNotify(null), ttlMs); // no answer → dismiss
   }, WALK_IN_MS);
 }
 
