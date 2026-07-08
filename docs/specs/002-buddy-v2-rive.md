@@ -104,19 +104,18 @@ Ship **1 → 2** for V2; hold 3/4 as polish.
 **A. Rive editor (human):** design artboard → import art (mesh) / draw vector → rig bones →
 author clips → build state machine + inputs → export `buddy.riv`.
 
-**B. Via the Rive MCP (automated) — confirmed available:** a local Rive MCP server
-(`rive` v0.6, `http://127.0.0.1:9791/mcp`) exposes a **full editor-automation API** that lets an
-agent build the rig programmatically:
-- `open_file_editor` (create/open), `path_editor` (vector), `assets_tool` (import art/meshes),
-  `animation_editor`, `component_editor`, `layout_editor`, `property_group_editor`
-- `viewmodel_editor` — **data-bind `mood` / `notifKind`** for the app to drive
-- scene graph: `list_artboards`, `get_artboard_hierarchy`, `find_objects`, `select/duplicate/reparent/…_objects`, `set_property_values`
-- scripting + tests: `manage_scripts`, `text_editor`, `script_diagnostics`, `run_tests`, `get_scripting_reference`
-- debug: `grep`, `read_console`
+**B. Rive MCP — for editing an *already-open* file (NOT headless authoring):** a local Rive MCP
+server (`rive` v0.6, `http://127.0.0.1:9791/mcp`) exposes a **full editor-automation API**
+(`path_editor`, `animation_editor`, `viewmodel_editor` for `mood`/`notifKind` data-binding, full
+scene-graph ops, scripting + `run_tests`, `read_console`). It can drive the rig programmatically —
+**but only against a file a human has already opened in Rive.app.**
 
-> **Note (verified):** the MCP responds and the editor is live, but a file must be opened first
-> (`open_file_editor`) — calls otherwise return `No file context available`. The MCP tools load
-> into Claude Code on **session start**, so drive them from a fresh session.
+> **⚠️ Verified by the [spike](002-buddy-v2-rive-spike.md) (2026-07-08):** the MCP has **no
+> create-file / open-file verb**. `open_file_editor` and every other tool return
+> `No file context available` until a document is open, and there is **no autonomous way to open
+> one** — `osascript` keystrokes are blocked (accessibility), Rive.app has no CLI, and no URL
+> scheme works. So authoring is **human-opens-`.riv`-in-Rive.app → then the MCP drives it**, not a
+> headless/autonomous path. (This corrects the earlier "automated, confirmed available" claim.)
 
 Either way: keep the **input contract (§4)** documented so the app and the `.riv` never drift.
 
@@ -128,15 +127,27 @@ Either way: keep the **input contract (§4)** documented so the app and the `.ri
 - Map the water flow first: `trigOffer` on show, `trigHadIt`/`trigSnooze` on the buttons.
 - Verify transparent rendering + click-through still hold with a canvas in the overlay.
 
-## 9. De-risk spike (do this before any art spend)
+**Runtime facts (verified by the [spike](002-buddy-v2-rive-spike.md), `@rive-app/canvas@2.38.4`):**
+`@rive-app/canvas` renders via **Canvas 2D** — transparency is automatic and `getImageData` works
+for pixel verification. The runtime exposes `stateMachineInputs()` → `StateMachineInput{name,type,fire()/value}`
+(types `Trigger`/`Boolean`/`Number`) and **`ViewModel*`**, so the §4 `mood`/`notifKind` **data-binding
+is supported** by this version.
 
-Per SPEC's "placeholder first" rule — a throwaway `.riv` proving the risky bits:
-1. Wire `@rive-app/canvas` behind `RB_RIVE` in the overlay; sprite path untouched.
-2. Load a rough `.riv` (primitive shapes) with 2–3 states + one trigger — **built via the Rive MCP**
-   as the first real MCP exercise.
-3. Prove: **transparent render** in the click-through overlay, **JS→input** fires, **idle footprint**
-   stays sane (always-on app), and a **clean swap path** parallel to sprites.
-4. Only after green → rig the real hybrid character + face variants.
+## 9. De-risk spike — ✅ **done (2026-07-08)** → full log: [002-buddy-v2-rive-spike.md](002-buddy-v2-rive-spike.md)
+
+**Verdict: GO on the integration.** Measured on a live runtime:
+- ✅ **Transparent render** in the click-through overlay (Canvas 2D, no opaque bg).
+- ✅ **Clean flag-gated swap path** — `RB_RIVE=1` lazy-loads the Rive stage; when off, the sprite
+  path is untouched (script never fetched).
+- ✅ **Idle footprint acceptable** — **+2.2 MB** bundle (js + wasm); a **~60 fps rAF loop only while
+  the overlay is visible** (a few seconds per reminder), throttled to ~0 when hidden. Bundle size is
+  the one thing to watch.
+- ⚠️ **JS→input proven at the API level, not end-to-end** — the stand-in sample `.riv` exposed zero
+  named inputs, so firing `trigOffer` end-to-end is **pending a real `buddy.riv`** with the §4 inputs.
+
+**Not built here (deliberate):** the spike's plumbing was discarded (a 5-session race left it
+inconsistent); it will be **rebuilt cleanly alongside the real `buddy.riv`**. The blocker for that is
+just the `.riv` itself (see §7-B — a human opens it in Rive.app, then the MCP rigs it).
 
 ## 10. Open questions
 
