@@ -47,11 +47,15 @@ function startNotifyApi({ config, version = '0.0.0', dispatch, presence = () => 
     if (active) return;
     let n;
     while ((n = queue.nextQueued())) {
-      queue.markShown(n.id, Date.now());
-      dispatch({
+      // Dispatch FIRST; only mark shown once it actually rendered. dispatch returns
+      // falsy when the overlay is busy (e.g. a water reminder is up) — leave the item
+      // queued and stop; the 1 s sweep re-pumps, so it's retried, not dropped.
+      const shown = dispatch({
         id: n.id, type: n.type, kind: n.kind, message: n.message,
-        detail: n.detail, actions: n.actions, side: 'right',
+        detail: n.detail, actions: n.actions, ttl: n.ttl, side: 'right',
       });
+      if (!shown) return;
+      queue.markShown(n.id, Date.now());
       if (n.type === 'action') { active = n.id; return; }
     }
   }
@@ -64,6 +68,7 @@ function startNotifyApi({ config, version = '0.0.0', dispatch, presence = () => 
 
   const sweep = setInterval(() => {
     for (const id of queue.sweep(Date.now())) clearIf(id);
+    pump(); // retry any notification that couldn't render while the overlay was busy
   }, 1000);
   if (sweep.unref) sweep.unref(); // don't keep the process alive on its own
 
@@ -79,7 +84,11 @@ function startNotifyApi({ config, version = '0.0.0', dispatch, presence = () => 
     const parts = url.pathname.split('/').filter(Boolean); // ['notify', ':id']
 
     if (parts[0] === 'health' && req.method === 'GET') {
-      return send(res, 200, { ok: true, version, present: !!presence() });
+      // Liveness is public; presence (am I at my desk?) is not — gate it behind the
+      // token so an unauthenticated local process can't read the user's presence.
+      const body = { ok: true, version };
+      if (req.headers['authorization'] === `Bearer ${token}`) body.present = !!presence();
+      return send(res, 200, body);
     }
 
     // Everything else requires the bearer token.

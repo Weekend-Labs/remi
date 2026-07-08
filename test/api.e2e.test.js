@@ -60,6 +60,7 @@ async function withApi(fn) {
       if (payload.type === 'action') {
         setImmediate(() => api.resolve(payload.id, payload.actions[0].result));
       }
+      return true; // rendered — pump marks it shown (falsy would leave it queued)
     },
     presence: () => true,
     log: () => {},
@@ -74,9 +75,11 @@ test('e2e: a request without a token is rejected 401', () => withApi(async (api,
   assert.match(r.json.error, /bearer token/);
 }));
 
-test('e2e: health needs no token and reports version + presence', () => withApi(async (api, port) => {
+test('e2e: health needs no token and reports version (presence gated behind the token)', () => withApi(async (api, port) => {
   const r = await req(port, 'GET', '/health');
-  assert.deepEqual(r.json, { ok: true, version: '1.2.3', present: true });
+  assert.deepEqual(r.json, { ok: true, version: '1.2.3' }); // unauthenticated → no presence leak
+  const authed = await req(port, 'GET', '/health', { token: TOKEN });
+  assert.deepEqual(authed.json, { ok: true, version: '1.2.3', present: true });
 }));
 
 test('e2e: info peek queues and dispatches, then reads back non-terminal', () => withApi(async (api, port, dispatched) => {
