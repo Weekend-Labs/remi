@@ -105,10 +105,12 @@ GET  http://127.0.0.1:7777/notify/n_123 → { "reply": "draft" }   # the produce
 - **`action`** — a message + buttons; your choice is **returned to the producer**, so an
   agent can then send the reply / archive the mail / open the meeting.
 
-The token is generated on first run into `config.json`. Grab it, then use
-[`bin/remi-notify`](bin/remi-notify), the [client sample](examples/notify-client.js), or the
-[test UI](examples/test-ui.js). Full contract: [F001 spec](docs/specs/001-notification-framework.md) ·
-mental model: [docs/CONCEPTS.md](docs/CONCEPTS.md).
+The token is generated on first run into `config.json`. Grab it, then drive the API from:
+- **AI agents** — an [**MCP server**](mcp/) (`claude mcp add … remi …`) or a [**Claude skill**](skill/).
+- **Scripts / CLI** — [`bin/remi-notify`](bin/remi-notify) or the [client sample](examples/notify-client.js).
+- **By hand** — the clickable [test UI](examples/test-ui.js) at `localhost:7788`.
+
+Full contract: [F001 spec](docs/specs/001-notification-framework.md) · mental model: [docs/CONCEPTS.md](docs/CONCEPTS.md).
 
 **The one rule:** Remi stays *dumb* — no Gmail/Slack SDKs in the app. Every "is this worth
 interrupting me?" decision is the producer's (the model's) job. Remi is just the megaphone.
@@ -125,13 +127,14 @@ prompts and all in:
 ## 🔭 Roadmap
 
 **Shipped in v0.2** — the notification framework: loopback API, `info` peeks + `action`
-replies, `remi-notify` CLI, client sample + test UI, and expressive per-state poses.
+replies, `remi-notify` CLI, client sample + test UI, expressive per-state poses, and
+**agent producers** — an [MCP server](mcp/) and a [Claude skill](skill/) so an AI agent can
+fire notifications and read your reply.
 
 **Next** — the framework's whole point is that a new reminder type is *just another producer*:
 
 | | What | Powered by |
 |-|------|------------|
-| **Skill + MCP** | Thin wrappers so an AI agent can fire notifications | agent tooling |
 | **Smart triage** | An agent reads Slack & email, **filters the noise**, only interrupts you for what matters | **Claude / Codex** |
 | **Presence-aware delivery** | Buddy at the desk; **WhatsApp / push when you're away or locked** | presence + bridge |
 
@@ -146,6 +149,8 @@ replies, `remi-notify` CLI, client sample + test UI, and expressive per-state po
 - [**docs/specs/**](docs/specs/) — feature specs (F001 notification framework, F002 Buddy V2).
 - [**SPEC.md**](SPEC.md) — the product story: goal, scope, stack decisions.
 - [**BACKLOG.md**](BACKLOG.md) — the code map and how features were scoped.
+
+**Producers (each lives with its code):** [`mcp/`](mcp/README.md) (MCP server) · [`skill/`](skill/README.md) (Claude skill) · [`examples/`](examples/README.md) (CLI client + test UI).
 
 ## 🍎 Platform note
 
