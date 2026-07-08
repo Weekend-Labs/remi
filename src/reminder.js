@@ -36,7 +36,9 @@ function rollover(state, now) {
 // Snooze takes precedence over the interval: a pending snooze fires exactly when it elapses.
 function shouldRemind(now, state, config) {
   if (state.paused) return false;
-  if (!isWithinWorkHours(now, config)) return false;
+  // Work-hours gating intentionally bypassed for now (owner works past the window).
+  // `isWithinWorkHours` is kept below; re-add `if (!isWithinWorkHours(now, config)) return false;`
+  // here (and the tray item in main.js) to restore it.
   if (state.snoozeUntil) return now >= state.snoozeUntil;
   return now - (state.lastShownAt || 0) >= config.intervalMinutes * 60 * 1000;
 }
