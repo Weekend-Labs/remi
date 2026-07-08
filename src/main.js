@@ -92,10 +92,29 @@ function triggerReminder() {
   state = markShown(state, Date.now());
   persist();
   anchorOverlay(); // land in the corner of whichever display is active now
+  overlayWin.setIgnoreMouseEvents(false); // water has buttons — must catch clicks (a prior peek may have set it true)
   overlayWin.showInactive();
   overlayWin.webContents.send('reminder:show', {
     glassesHad: state.glassesHad,
     goal: state.goal,
+  });
+}
+
+// F001 info peek: buddy leans in from an edge, says one thing, retracts. No
+// buttons → make the window click-through so it never intercepts clicks.
+// The parallel API lane emits `notification:show`; this fires the same event
+// for the demo/tray trigger. Renderer ignores type:'action' (that's the API lane's).
+function triggerPeek(data = {}) {
+  if (!overlayWin || overlayWin.isVisible()) return;
+  anchorOverlay();
+  overlayWin.setIgnoreMouseEvents(true, { forward: true });
+  overlayWin.showInactive();
+  overlayWin.webContents.send('notification:show', {
+    id: data.id || `peek_${Date.now()}`,
+    type: 'info',
+    message: data.message || 'Standup in 5 minutes 🗣️',
+    detail: data.detail || 'Daily sync — grab your coffee ☕',
+    side: data.side || 'right',
   });
 }
 
@@ -155,6 +174,7 @@ function updateTray() {
     { label: `Every ${config.intervalMinutes}m · ${config.workHours.start}–${config.workHours.end}`, enabled: false },
     { type: 'separator' },
     { label: 'Remind now', click: triggerReminder },
+    { label: 'Test peek 👀', click: () => triggerPeek() },
     { label: 'View progress', click: openCalendar },
     {
       label: state.paused ? 'Resume reminders' : 'Pause reminders',
@@ -191,6 +211,8 @@ app.whenReady().then(() => {
   startLoop();
   // `npm run demo` → buddy walks in on launch so you can see the overlay without waiting
   if (process.env.RB_DEMO) setTimeout(triggerReminder, 2500);
+  // `RB_PEEK=1 electron .` → fire a sample info peek on launch (testable without the API)
+  if (process.env.RB_PEEK) setTimeout(() => triggerPeek({ side: process.env.RB_PEEK_SIDE }), 2500);
 });
 
 ipcMain.on('reminder:action', (_e, action) => {
