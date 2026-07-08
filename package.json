@@ -16,6 +16,9 @@
     "test": "node --test",
     "package": "electron-packager . --platform=darwin --arch=arm64 --out=dist --overwrite --icon=build/icon.icns --app-bundle-id=com.vijay.remi --ignore=\"/(dist|tools|test|assets|build)($|/)\""
   },
+  "dependencies": {
+    "@rive-app/canvas": "^2.38.4"
+  },
   "devDependencies": {
     "@electron/packager": "^18.3.6",
     "electron": "^33.0.0"

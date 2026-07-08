@@ -40,6 +40,14 @@
 
   #stage { height: 230px; display: flex; align-items: flex-end; justify-content: center; }
 
+  /* Rive stage (RB_RIVE=1): transparent canvas behind the bubble/buttons.
+     Hidden until overlay-rive.js boots; click-through so the buttons stay live. */
+  #rivecanvas {
+    position: absolute; inset: 0; width: 100%; height: 100%;
+    display: none; z-index: 0; pointer-events: none;
+  }
+  #scene { z-index: 1; }
+
   /* side-view walk cycle: 4-frame strip (cell 226x418) stepped with steps(4) */
   #walker {
     width: 124px; height: 230px;
@@ -84,6 +92,7 @@
 </style>
 </head>
 <body>
+  <canvas id="rivecanvas"></canvas>
   <div id="scene">
     <div id="bubble"><span id="msg">Time for water 💧</span><small id="count"></small></div>
     <div id="stage">
@@ -96,5 +105,15 @@
     </div>
   </div>
   <script src="overlay.js"></script>
+  <script>
+    // RB_RIVE=1 (main.js appends ?rive=1) → lazy-load the Rive stage on top of
+    // the sprite renderer. When the flag is off this script is never reached, so
+    // overlay-rive.js is never fetched and the sprite path is byte-for-byte v0.1.
+    if (new URLSearchParams(location.search).get('rive') === '1') {
+      const s = document.createElement('script');
+      s.src = 'overlay-rive.js';
+      document.body.appendChild(s);
+    }
+  </script>
 </body>
 </html>

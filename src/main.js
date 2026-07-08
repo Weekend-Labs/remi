@@ -54,7 +54,10 @@ function createOverlay() {
     },
   });
   overlayWin.setAlwaysOnTop(true, 'floating');
-  overlayWin.loadFile(path.join(__dirname, 'renderer', 'index.html'));
+  // RB_RIVE=1 → load the overlay with ?rive=1 so it lazy-loads the Rive stage
+  // (overlay-rive.js). Unset → sprite path, untouched. One line, reversible.
+  const loadOpts = process.env.RB_RIVE ? { query: { rive: '1' } } : undefined;
+  overlayWin.loadFile(path.join(__dirname, 'renderer', 'index.html'), loadOpts);
 }
 
 // Progress calendar: a plain (framed, closable) window, separate from the overlay —
