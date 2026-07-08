@@ -48,3 +48,29 @@ node --test test/api.e2e.test.js      # just the e2e file
 
 No Electron and no network fixtures required — it uses an ephemeral loopback port and a
 fixed token.
+
+## Test UI — a clickable bench in the browser
+
+[`test-ui.js`](./test-ui.js) is the point-and-click twin of the client sample: a tiny Node
+server (built-in `http`, no deps) that serves one self-contained page **and** proxies the
+browser's calls to the notification API. The API **token is injected server-side** (read
+from `config.json`), so the browser stays same-origin with the UI server — no CORS, and the
+token never reaches the page.
+
+```sh
+# 1. Start Remi in one terminal (writes config.json):
+npm start
+
+# 2. Start the test UI in another, then open the URL:
+node examples/test-ui.js        # → http://localhost:7788
+UI_PORT=9000 node examples/test-ui.js   # pick a different UI port
+```
+
+The page lets you set **message / detail / type (`info`|`action`) / kind / side / actions**
+(as `Label:result, …`), then **Fire** it. You get the raw API response; for an `action` it
+**live-polls `GET /notify/:id`** and shows the reply you clicked on the buddy. A **health**
+readout (up / version / presence) sits at the top, a **log of recent sends** at the bottom,
+and if Remi isn't running you get a friendly hint instead of a stack trace.
+
+Token/port resolve exactly like the client sample — same `config.json`, same `REMI_TOKEN` /
+`REMI_PORT` / `REMI_CONFIG` overrides.
