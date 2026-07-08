@@ -17,21 +17,24 @@
     transform: translateX(160%);
   }
 
-  /* pixel/retro speech bubble */
-  #bubble {
+  /* pixel/retro speech bubble — shared box look (water + peek) */
+  .bubble {
     background: #fff; color: #16202b;
     border: 3px solid #16202b; border-radius: 0;
-    padding: 10px 14px; margin-bottom: 12px;
+    padding: 10px 14px;
     font-size: 14px; font-weight: 800; line-height: 1.35; text-align: center;
     letter-spacing: .3px;
     box-shadow: 4px 4px 0 rgba(22,32,43,.28);   /* hard offset shadow, no blur */
     image-rendering: pixelated;
+  }
+  .bubble small { display: block; font-weight: 700; color: #5a6b7d; font-size: 12px; margin-top: 3px; }
+
+  #bubble {
+    margin-bottom: 12px; max-width: 260px;
     opacity: 0; transform: translateY(6px);
     transition: opacity .25s, transform .25s;
-    max-width: 260px;
   }
   #scene.show #bubble { opacity: 1; transform: translateY(0); }
-  #bubble small { display: block; font-weight: 700; color: #5a6b7d; font-size: 12px; margin-top: 3px; }
   #bubble::after {                               /* hard-bordered pixel tail */
     content: ''; position: absolute; width: 11px; height: 11px;
     background: #fff; border: 3px solid #16202b; border-top: 0; border-left: 0;
@@ -81,11 +84,50 @@
   #had  { background: #2fb3ff; color: #fff; }
   #snz  { background: #e7ecf1; color: #33445a; }
   button:active { transform: translate(3px,3px); box-shadow: none; }  /* press-in */
+
+  /* ── PEEK (info notification): buddy leans in from an edge, tilted, partially
+     exposed, with a side-aligned bubble. No buttons, auto-dismisses. Independent
+     of #scene so the water walk-in path is untouched. Tune via the CSS vars. */
+  #peek {
+    position: absolute; inset: 0; overflow: hidden;
+    pointer-events: none;                 /* info peeks never catch clicks */
+    --tilt: 15deg;                        /* inward lean */
+    --inset: -78px;                       /* how far the sprite hangs off the edge (clip) */
+    --sprite-h: 262px;
+  }
+  #peekBuddy {
+    position: absolute; bottom: -12px;
+    height: var(--sprite-h); width: auto;
+    filter: drop-shadow(0 5px 5px rgba(0,0,0,.28));
+    opacity: 0;
+    transition: transform .5s cubic-bezier(.2,.85,.3,1.05), opacity .3s;
+  }
+  #peek.right #peekBuddy { right: var(--inset); transform-origin: bottom right;
+                           transform: translateX(150%) rotate(0deg); }   /* off-edge start */
+  #peek.left  #peekBuddy { left:  var(--inset); transform-origin: bottom left;
+                           transform: translateX(-150%) rotate(0deg); }
+  #peek.right.show #peekBuddy { transform: rotate(calc(-1 * var(--tilt))); opacity: 1; }
+  #peek.left.show  #peekBuddy { transform: rotate(var(--tilt)); opacity: 1; }
+
+  #peekBubble {
+    position: absolute; bottom: 196px; max-width: 208px;
+    opacity: 0; transform: translateY(6px);
+    transition: opacity .25s .2s, transform .25s .2s;   /* settles just after the lean-in */
+  }
+  #peek.right #peekBubble { right: 150px; }   /* toward screen-center, left of buddy */
+  #peek.left  #peekBubble { left:  150px; }   /* mirrored */
+  #peek.show #peekBubble { opacity: 1; transform: translateY(0); }
+  #peekBubble::after {                          /* side tail pointing at the buddy */
+    content: ''; position: absolute; top: 50%; width: 12px; height: 12px;
+    background: #fff; border: 3px solid #16202b; margin-top: -6px;
+  }
+  #peek.right #peekBubble::after { right: -8px; border-left: 0; border-bottom: 0; transform: rotate(45deg); }
+  #peek.left  #peekBubble::after { left:  -8px; border-right: 0; border-top: 0; transform: rotate(45deg); }
 </style>
 </head>
 <body>
   <div id="scene">
-    <div id="bubble"><span id="msg">Time for water 💧</span><small id="count"></small></div>
+    <div id="bubble" class="bubble"><span id="msg">Time for water 💧</span><small id="count"></small></div>
     <div id="stage">
       <div id="walker"></div>
       <img id="avatar" src="buddy-hold.png" alt="water buddy" />
@@ -94,6 +136,10 @@
       <button id="had">Had it 💧</button>
       <button id="snz">Snooze 15m</button>
     </div>
+  </div>
+  <div id="peek">
+    <div id="peekBubble" class="bubble"><span id="peekMsg"></span><small id="peekDetail"></small></div>
+    <img id="peekBuddy" alt="buddy peeking in" />
   </div>
   <script src="overlay.js"></script>
 </body>

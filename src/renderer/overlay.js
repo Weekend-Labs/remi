@@ -166,11 +166,52 @@ function celebrate(data = {}) {
   count.textContent = '';
 }
 
+// ── PEEK (info notification) ──────────────────────────────────────────────
+// Separate path from the water walk-in: the buddy leans in from a screen edge,
+// says one thing, and retracts. No buttons, auto-dismisses. Swap the art by
+// changing PEEK_SPRITE; tilt/clip are CSS vars on #peek (see index.html).
+const PEEK_SPRITE = 'buddy-hold.png'; // richer mood/pose sheets drop in here later
+const PEEK_HOLD_MS = 4500;            // peek in → hold → retract
+const PEEK_OUT_MS = 500;              // matches #peekBuddy transition
+const peek = document.getElementById('peek');
+const peekBuddy = document.getElementById('peekBuddy');
+const peekMsg = document.getElementById('peekMsg');
+const peekDetail = document.getElementById('peekDetail');
+let peekHoldTimer, peekOutTimer;
+
+function showPeek(data = {}) {
+  const { message = '', detail = '', side = 'right' } = data;
+  clearTimeout(peekHoldTimer); clearTimeout(peekOutTimer);
+  peekMsg.textContent = message;
+  peekDetail.textContent = detail;
+  peekDetail.style.display = detail ? '' : 'none';
+  if (peekBuddy.getAttribute('src') !== PEEK_SPRITE) peekBuddy.src = PEEK_SPRITE;
+  peek.classList.remove('show', 'left', 'right');
+  peek.classList.add(side === 'left' ? 'left' : 'right');
+  void peek.offsetWidth;              // reflow so the lean-in replays
+  requestAnimationFrame(() => peek.classList.add('show'));
+  peekHoldTimer = setTimeout(retractPeek, PEEK_HOLD_MS);
+}
+
+function retractPeek() {
+  clearTimeout(peekHoldTimer);
+  peek.classList.remove('show');     // slide + tilt back off the edge
+  peekOutTimer = setTimeout(() => window.buddy?.hide(), PEEK_OUT_MS);
+}
+
+// Shared IPC contract: renderer handles type:'info' (peek); 'action' is the API lane's.
+function onNotify(data = {}) {
+  if (data.type === 'info') showPeek(data);
+  else if (data.type === 'action') showNotification(data);
+}
+
 window.buddy?.onShow(showReminder);
 window.buddy?.onCelebrate(celebrate);
-window.buddy?.onNotify(showNotification);
+window.buddy?.onNotify(onNotify);
 
 // test hooks
 window.showReminder = showReminder;
 window.hideReminder = walkOut;
 window.celebrate = celebrate;
+window.showPeek = showPeek;
+window.hidePeek = retractPeek;
