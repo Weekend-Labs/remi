@@ -216,6 +216,7 @@ function showPeek(data = {}) {
   setPose(peekBuddy, 'peek');
   peek.classList.remove('show', 'left', 'right');
   peek.classList.add(side === 'left' ? 'left' : 'right');
+  playChime();                        // same light chime as the reminder/action paths
   void peek.offsetWidth;              // reflow so the lean-in replays
   requestAnimationFrame(() => peek.classList.add('show'));
   peekHoldTimer = setTimeout(retractPeek, PEEK_HOLD_MS);
