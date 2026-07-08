@@ -145,6 +145,49 @@ is documented, copy-paste prompts and all, in:
 
 ### 👉 [**docs/DESIGN-YOUR-OWN-BUDDY.md**](docs/DESIGN-YOUR-OWN-BUDDY.md)
 
+## 🔭 Roadmap — from water buddy to notification framework
+
+v0.1 is a water reminder. The bigger idea: **Remi is a delightful face for *any*
+notification** — meetings, a Slack DM that actually needs a reply, an email worth your
+attention — while staying a small, dumb, local app. The intelligence lives *outside*;
+Remi just knows how to make a character peek in, speak, and (optionally) collect your answer.
+
+**The architecture:** Remi becomes a **local notification daemon** with a loopback HTTP
+API (`127.0.0.1`, token-auth — never exposed to the network). Anything can be a
+*producer* — a cron job, a shell script, or an AI agent — and they all speak the same call:
+
+```http
+POST http://127.0.0.1:7777/notify      Authorization: Bearer <token>
+{ "type": "action", "message": "Reply to Sam's DM?",
+  "actions": [ { "label": "Draft reply", "result": "draft" }, { "label": "Snooze", "result": "snooze" } ] }
+→ { "id": "n_123" }
+
+GET  http://127.0.0.1:7777/notify/n_123 → { "reply": "draft" }   # the producer hears back and acts
+```
+
+**Two notification kinds**, one primitive:
+- **`info` (peek)** — the buddy leans in, delivers, strolls off. Fire-and-forget. *"Standup in 5."* · *"Riya 👍'd your message."*
+- **`action`** — the water pattern generalized: a message + buttons (or a quick-reply field) that **returns your choice to the producer**, so an agent can then send the reply / archive the mail / open the meeting.
+
+**Producers — cron *and* agents, interchangeable behind that API:**
+
+| Phase | What ships | Powered by |
+|-------|-----------|------------|
+| **3 · Notification framework** | The loopback API + `info`/`action` types + reply channel. Water refactored to ride it (proves the seam). | core app |
+| **4 · Producers & a skill** | A `remi-notify` skill/CLI wrapper + a cron example (meetings from your calendar). | cron / any script |
+| **5 · Smart triage** | An agent reads Slack & email, **filters the noise**, and only interrupts you for DMs that need a quick reply or mail that genuinely matters. | **Claude / Codex** agent |
+| **6 · Presence-aware delivery** | Buddy when you're at the desk; **WhatsApp / push notification when you're away or locked**. | presence + WhatsApp bridge |
+
+**Reminder types on deck:** 📅 meetings · 💬 pending Slack DMs · 📧 reply-worthy email · ⏰ ad-hoc reminders.
+
+**Design guarantees we're keeping:**
+- Remi stays *dumb* — no Gmail/Slack SDKs in the app itself; that logic lives in producers.
+- The API is **loopback + token only**. It can pop UI and read your replies, so it never binds to a public interface.
+- Every smart decision ("is this worth interrupting me?") is the **model's** job — Remi is the megaphone, the agent is the filter.
+
+> 💡 This is a design direction, not a promise of dates. Ideas and PRs welcome — the
+> whole point of the framework is that a new reminder type is *just another producer*.
+
 ## More docs
 
 - [**docs/DESIGN-YOUR-OWN-BUDDY.md**](docs/DESIGN-YOUR-OWN-BUDDY.md) — build your own character (AI prompts + the `tools/*.py` pipeline).
