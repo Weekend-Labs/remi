@@ -190,6 +190,7 @@ GET  http://127.0.0.1:7777/notify/n_123 → { "reply": "draft" }   # the produce
 
 ## More docs
 
+- [**docs/CONCEPTS.md**](docs/CONCEPTS.md) — **Reminders vs Notifications** — the core mental model (start here).
 - [**docs/DESIGN-YOUR-OWN-BUDDY.md**](docs/DESIGN-YOUR-OWN-BUDDY.md) — build your own character (AI prompts + the `tools/*.py` pipeline).
 - [**SPEC.md**](SPEC.md) — the product story: goal, scope, stack decisions, roadmap.
 - [**BACKLOG.md**](BACKLOG.md) — the code map and how the post-v0.1 features were scoped.

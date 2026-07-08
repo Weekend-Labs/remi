@@ -13,6 +13,10 @@
 
 ## 1. Summary
 
+> **Note:** *Reminders* (Remi-scheduled, e.g. water) and *Notifications* (producer-fired via
+> this API) are two distinct concepts that share the buddy. This spec is about **Notifications**;
+> see [`docs/CONCEPTS.md`](../CONCEPTS.md) for how they differ.
+
 Turn Remi from a single-purpose **water reminder** into a general **reminder +
 notification framework**: a small, local, delightful *face* for any notification —
 meetings, a Slack DM that needs a reply, an email worth your attention, an ad-hoc nudge.
