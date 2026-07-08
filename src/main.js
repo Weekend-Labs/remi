@@ -9,7 +9,7 @@ const WIN_W = 380;
 const WIN_H = 420;
 
 // Settings menu presets (each hours window is inherently valid: end > start).
-const INTERVAL_PRESETS = [30, 45, 60, 90];
+const INTERVAL_PRESETS = [1, 30, 45, 60, 90]; // 1m is a fast-loop test knob
 const HOURS_PRESETS = [
   { start: '08:00', end: '16:00' },
   { start: '09:00', end: '17:00' },
