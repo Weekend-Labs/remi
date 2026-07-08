@@ -24,6 +24,14 @@ function dayLevel(entry) {
   return 'partial';
 }
 
+// Glasses-achieved label for a cell: "had/goal" (e.g. "5/8"), or "had" when no goal
+// is stored. Returns null for no-data days (no entry or nothing drunk) so the cell
+// stays clean — no "0/8" clutter.
+function dayCount(entry) {
+  if (!entry || !entry.had) return null;
+  return entry.goal ? `${entry.had}/${entry.goal}` : String(entry.had);
+}
+
 if (typeof module !== 'undefined' && module.exports) {
-  module.exports = { monthGrid, dayLevel };
+  module.exports = { monthGrid, dayLevel, dayCount };
 }

@@ -44,10 +44,15 @@
   }
   .cell.pad { border: 0; background: transparent; box-shadow: none; }
   .cell .num { font-size: 11px; font-weight: 800; padding: 3px 4px; color: #33445a; }
+  /* glasses achieved (had/goal), bottom-left, out of the day-number's way */
+  .cell .count {
+    position: absolute; left: 4px; bottom: 2px;
+    font-size: 10px; font-weight: 800; letter-spacing: .2px; color: #2a5a78;
+  }
   .cell.none    { background: #fff; }
   .cell.partial { background: #b8e6ff; }              /* had some water */
   .cell.full    { background: #2fb3ff; }              /* goal met — clearly distinct */
-  .cell.full .num { color: #fff; }
+  .cell.full .num, .cell.full .count { color: #fff; }
   .cell.today   { outline: 3px solid #ff8a3d; outline-offset: -3px; }
 
   /* legend */
