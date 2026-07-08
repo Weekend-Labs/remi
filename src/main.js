@@ -1,7 +1,9 @@
 const { app, BrowserWindow, Tray, Menu, ipcMain, screen, nativeImage } = require('electron');
 const path = require('path');
+const crypto = require('crypto');
 const { load, saveState, saveConfig, isValidConfig } = require('./state');
 const { rollover, shouldRemind, markShown, applyAction, streak, todayStr } = require('./reminder');
+const { startNotifyApi } = require('./api');
 
 const WIN_W = 380;
 const WIN_H = 420;
@@ -23,6 +25,7 @@ let tray;
 let config;
 let state;
 let loopTimer;
+let notifyApi;
 
 function dataDir() {
   return path.join(app.getPath('userData'));
@@ -100,10 +103,9 @@ function triggerReminder() {
   });
 }
 
-// F001 info peek: buddy leans in from an edge, says one thing, retracts. No
-// buttons → make the window click-through so it never intercepts clicks.
-// The parallel API lane emits `notification:show`; this fires the same event
-// for the demo/tray trigger. Renderer ignores type:'action' (that's the API lane's).
+// F001 info peek (#18): buddy leans in from an edge, says one thing, retracts. No
+// buttons → make the window click-through so it never intercepts clicks. Both the
+// demo/tray trigger and the API's `info` dispatch route through here.
 function triggerPeek(data = {}) {
   if (!overlayWin || overlayWin.isVisible()) return;
   anchorOverlay();
@@ -115,6 +117,34 @@ function triggerPeek(data = {}) {
     message: data.message || 'Standup in 5 minutes 🗣️',
     detail: data.detail || 'Daily sync — grab your coffee ☕',
     side: data.side || 'right',
+  });
+}
+
+// F001: hand a notification from the API to the overlay. info → peek (leans in,
+// click-through); action → the existing buttons (must catch clicks). Coexists
+// with the water path for now.
+function dispatchNotification(payload) {
+  if (!overlayWin || overlayWin.isVisible()) return;
+  if (payload.type === 'info') { triggerPeek(payload); return; }
+  anchorOverlay();
+  overlayWin.setIgnoreMouseEvents(false); // action has buttons — must catch clicks
+  overlayWin.showInactive();
+  overlayWin.webContents.send('notification:show', payload);
+}
+
+// Ensure a bearer token + port exist in config.json, then start the loopback API.
+function startNotificationApi() {
+  if (!config.apiToken) {
+    config = { ...config, apiToken: crypto.randomBytes(24).toString('hex'), apiPort: config.apiPort || 7777 };
+    saveConfig(dataDir(), config);
+    console.log(`[remi] generated API token (in config.json): ${config.apiToken}`); // printed once, on first run
+  }
+  notifyApi = startNotifyApi({
+    config,
+    version: app.getVersion(),
+    dispatch: dispatchNotification,
+    presence: () => true, // ponytail: stub true until F001 phase 6 wires real presence
+    log: console.log,
   });
 }
 
@@ -209,6 +239,7 @@ app.whenReady().then(() => {
   createOverlay();
   createTray();
   startLoop();
+  startNotificationApi();
   // `npm run demo` → buddy walks in on launch so you can see the overlay without waiting
   if (process.env.RB_DEMO) setTimeout(triggerReminder, 2500);
   // `RB_PEEK=1 electron .` → fire a sample info peek on launch (testable without the API)
@@ -229,6 +260,11 @@ ipcMain.on('reminder:action', (_e, action) => {
 ipcMain.on('reminder:hide', () => {
   if (overlayWin) overlayWin.hide();
 });
+
+// F001: renderer reports the user's answer to an `action` notification (button click
+// → reply; auto-dismiss/close → dismiss). Resolves the queued notification + its reply.
+ipcMain.on('notification:reply', (_e, { id, result }) => notifyApi?.resolve(id, result));
+ipcMain.on('notification:dismiss', (_e, { id }) => notifyApi?.cancel(id));
 
 // Calendar window pulls the per-day history map to tint the month grid.
 ipcMain.handle('history:get', () => state.history || {});

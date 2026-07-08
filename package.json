@@ -10,6 +10,9 @@
     "url": "git+https://github.com/Weekend-Labs/remi.git"
   },
   "main": "src/main.js",
+  "bin": {
+    "remi-notify": "bin/remi-notify"
+  },
   "scripts": {
     "start": "electron .",
     "demo": "RB_DEMO=1 electron .",

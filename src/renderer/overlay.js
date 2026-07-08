@@ -10,6 +10,8 @@ const avatar = document.getElementById('avatar');
 const bubble = document.getElementById('bubble');
 const msg = document.getElementById('msg');
 const count = document.getElementById('count');
+const had = document.getElementById('had');
+const snz = document.getElementById('snz');
 const REACT_MS = 1400; // how long the reaction shows before he leaves
 let dismissTimer, arriveTimer, outTimer, reactTimer;
 
@@ -99,8 +101,61 @@ function walkOut() {
   outTimer = setTimeout(() => window.buddy?.hide(), WALK_OUT_MS);
 }
 
-document.getElementById('had').addEventListener('click', () => choose('had-it'));
-document.getElementById('snz').addEventListener('click', () => choose('snooze'));
+// ── F001: generic `action` notification (peek lane renders type:'info') ──────
+// Reuses this same walk-in overlay: relabels the two buttons from actions[] and
+// resolves the reply over IPC. The water path (showReminder/choose) is untouched.
+let activeNotify = null;
+
+function showNotification(data) {
+  if (!data || data.type !== 'action') return; // info is the peek lane's job
+  activeNotify = data;
+  msg.textContent = data.message;
+  count.textContent = data.detail || '';
+  bubble.classList.remove('happy', 'meh');
+  avatar.classList.remove('cheer', 'sad');
+  const acts = (data.actions || []).slice(0, 2);
+  [had, snz].forEach((b, i) => {
+    if (acts[i]) { b.textContent = acts[i].label; b.dataset.result = acts[i].result; b.style.display = ''; }
+    else b.style.display = 'none';
+  });
+  document.getElementById('actions').style.pointerEvents = '';
+  clearTimers();
+  playChime();
+  // walk-in (same sequence as showReminder)
+  scene.classList.remove('show');
+  avatar.style.display = 'none';
+  walker.classList.remove('flip');
+  walker.classList.add('stepping');
+  walker.style.display = 'block';
+  scene.style.transition = 'none';
+  scene.style.transform = 'translateX(160%)';
+  void scene.offsetWidth;
+  scene.style.transition = `transform ${WALK_IN_MS}ms linear`;
+  requestAnimationFrame(() => { scene.style.transform = 'translateX(0)'; });
+  arriveTimer = setTimeout(() => {
+    walker.classList.remove('stepping');
+    walker.style.display = 'none';
+    avatar.style.display = 'block';
+    scene.classList.add('show');
+    dismissTimer = setTimeout(() => resolveNotify(null), AUTO_DISMISS_MS); // no answer → dismiss
+  }, WALK_IN_MS);
+}
+
+// result === null → the user let it auto-dismiss; else it's the chosen action result.
+function resolveNotify(result) {
+  if (!activeNotify) return;
+  const { id } = activeNotify;
+  activeNotify = null;
+  clearTimers();
+  if (result == null) window.buddy?.notifyDismiss(id);
+  else window.buddy?.notifyReply(id, result);
+  // restore the water buttons for the next water reminder
+  had.textContent = 'Had it 💧'; snz.textContent = 'Snooze 15m'; snz.style.display = '';
+  walkOut();
+}
+
+had.addEventListener('click', () => (activeNotify ? resolveNotify(had.dataset.result) : choose('had-it')));
+snz.addEventListener('click', () => (activeNotify ? resolveNotify(snz.dataset.result) : choose('snooze')));
 
 // Main fires this once, right after "Had it" first reaches today's goal. It lands
 // during the happy reaction and swaps the bubble text for the streak cheer.
@@ -147,6 +202,7 @@ function retractPeek() {
 // Shared IPC contract: renderer handles type:'info' (peek); 'action' is the API lane's.
 function onNotify(data = {}) {
   if (data.type === 'info') showPeek(data);
+  else if (data.type === 'action') showNotification(data);
 }
 
 window.buddy?.onShow(showReminder);
