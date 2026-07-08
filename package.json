@@ -1,8 +1,8 @@
 {
   "name": "reminder-buddy",
   "productName": "Remi",
-  "version": "0.1.1",
-  "description": "Animated desktop buddy that reminds you to drink water",
+  "version": "0.2.0",
+  "description": "Animated desktop buddy that reminds you to drink water — and a face for any notification",
   "license": "MIT",
   "author": "Vijay Chhuttani <vijay@zoop.one>",
   "repository": {
