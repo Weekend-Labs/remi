@@ -18,6 +18,8 @@ let dismissTimer, arriveTimer, outTimer, reactTimer;
 function clearTimers() {
   clearTimeout(dismissTimer); clearTimeout(arriveTimer);
   clearTimeout(outTimer); clearTimeout(reactTimer);
+  // peek timers too, so a leftover can't hide/walkOut mid-walk-in (declared below, let-scoped)
+  clearTimeout(peekHoldTimer); clearTimeout(peekOutTimer);
 }
 
 // ── Pose registry (art-ready, with fallback) ─────────────────────────────
@@ -52,7 +54,7 @@ function playChime() {
       osc.type = 'sine';
       osc.frequency.value = freq;
       gain.gain.setValueAtTime(0, now + t);
-      gain.gain.linearRampToValueAtTime(0.05, now + t + 0.02); // soft
+      gain.gain.linearRampToValueAtTime(0.14, now + t + 0.02); // audible over ambient noise
       gain.gain.exponentialRampToValueAtTime(0.0001, now + t + 0.35);
       osc.connect(gain).connect(audioCtx.destination);
       osc.start(now + t);
@@ -81,7 +83,9 @@ function showReminder(data = {}) {
   scene.style.transform = 'translateX(160%)';
   void scene.offsetWidth; // reflow so the walk-in replays
   scene.style.transition = `transform ${WALK_IN_MS}ms linear`; // constant walking speed
-  requestAnimationFrame(() => { scene.style.transform = 'translateX(0)'; });
+  // Double rAF: on the hidden→shown path (Remind now), a single rAF fires before the
+  // 160% start paints, so the transition doesn't animate. Wait one extra frame.
+  requestAnimationFrame(() => requestAnimationFrame(() => { scene.style.transform = 'translateX(0)'; }));
   arriveTimer = setTimeout(arrive, WALK_IN_MS);
 }
 
@@ -153,7 +157,8 @@ function showNotification(data) {
   scene.style.transform = 'translateX(160%)';
   void scene.offsetWidth;
   scene.style.transition = `transform ${WALK_IN_MS}ms linear`;
-  requestAnimationFrame(() => { scene.style.transform = 'translateX(0)'; });
+  // Double rAF: same hidden→shown replay race as showReminder — wait one extra frame.
+  requestAnimationFrame(() => requestAnimationFrame(() => { scene.style.transform = 'translateX(0)'; }));
   arriveTimer = setTimeout(() => {
     walker.classList.remove('stepping');
     walker.style.display = 'none';

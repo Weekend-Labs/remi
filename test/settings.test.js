@@ -13,12 +13,12 @@ test('valid config passes', () => {
   assert.equal(isValidConfig(good), true);
 });
 
-test('interval at the 5m floor is allowed', () => {
-  assert.equal(isValidConfig({ ...good, intervalMinutes: 5 }), true);
+test('interval at the 1m floor is allowed', () => {
+  assert.equal(isValidConfig({ ...good, intervalMinutes: 1 }), true);
 });
 
-test('interval below 5m is rejected', () => {
-  assert.equal(isValidConfig({ ...good, intervalMinutes: 4 }), false);
+test('interval below 1m is rejected', () => {
+  assert.equal(isValidConfig({ ...good, intervalMinutes: 0 }), false);
 });
 
 test('end must be after start', () => {
