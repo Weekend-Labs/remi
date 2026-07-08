@@ -123,13 +123,17 @@ function triggerPeek(data = {}) {
 // F001: hand a notification from the API to the overlay. info → peek (leans in,
 // click-through); action → the existing buttons (must catch clicks). Coexists
 // with the water path for now.
+// Returns truthy once it actually renders, falsy when the overlay is busy (a water
+// reminder or another notification is up). pump() relies on this: a falsy return
+// leaves the item queued to retry, instead of losing it and stalling the slot.
 function dispatchNotification(payload) {
-  if (!overlayWin || overlayWin.isVisible()) return;
-  if (payload.type === 'info') { triggerPeek(payload); return; }
+  if (!overlayWin || overlayWin.isVisible()) return false;
+  if (payload.type === 'info') { triggerPeek(payload); return true; }
   anchorOverlay();
   overlayWin.setIgnoreMouseEvents(false); // action has buttons — must catch clicks
   overlayWin.showInactive();
   overlayWin.webContents.send('notification:show', payload);
+  return true;
 }
 
 // Ensure a bearer token + port exist in config.json, then start the loopback API.

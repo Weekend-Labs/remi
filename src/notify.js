@@ -42,7 +42,9 @@ function validate(body) {
   };
 }
 
-const LIVE = new Set(['queued', 'shown']); // non-terminal states
+const LIVE = new Set(['queued', 'shown']);                    // non-terminal states
+const TERMINAL = new Set(['answered', 'dismissed', 'expired']); // resolved states
+const RETENTION_MS = 5 * 60 * 1000; // keep terminal items ~5 min so a producer can still GET the reply
 
 // In-memory FIFO queue with lifecycle transitions. Insertion order == FIFO order.
 function createQueue() {
@@ -84,6 +86,7 @@ function createQueue() {
       if (!n || !LIVE.has(n.status)) return null;
       n.status = 'answered';
       n.reply = { result, at: Math.floor(now / 1000) };
+      n.resolvedAt = now;
       return n;
     },
 
@@ -92,14 +95,20 @@ function createQueue() {
       const n = items.get(id);
       if (!n || !LIVE.has(n.status)) return null;
       n.status = 'dismissed'; n.reply = { result: 'dismissed', at: Math.floor(now / 1000) };
+      n.resolvedAt = now;
       return n;
     },
 
-    // Expire every live notification past its ttl. Returns the expired ids.
+    // Expire every live notification past its ttl, and prune terminal items that
+    // have sat resolved past the retention window — so an always-on producer can't
+    // grow `items` (and the per-second scans) without bound. A just-expired item
+    // takes the first branch, so it's never pruned in the same sweep. Returns the
+    // ids expired this pass.
     sweep(now) {
       const expired = [];
       for (const n of items.values()) {
-        if (LIVE.has(n.status) && now >= n.expiresAt) { n.status = 'expired'; expired.push(n.id); }
+        if (LIVE.has(n.status) && now >= n.expiresAt) { n.status = 'expired'; n.resolvedAt = now; expired.push(n.id); }
+        else if (TERMINAL.has(n.status) && now - n.resolvedAt >= RETENTION_MS) items.delete(n.id);
       }
       return expired;
     },
