@@ -17,9 +17,12 @@ test('paused → never reminds', () => {
   assert.equal(shouldRemind(noon, { ...base, paused: true }, config), false);
 });
 
-test('outside work hours → no reminder', () => {
-  const at8am = new Date(2026, 6, 7, 8, 0, 0).getTime();
-  assert.equal(shouldRemind(at8am, base, config), false);
+test('work hours ignored → reminds outside the old window', () => {
+  // Work-hours gating is bypassed: interval-elapsed reminders fire at any hour.
+  const at8am = new Date(2026, 6, 7, 8, 0, 0).getTime();   // before old 09:00 start
+  const at10pm = new Date(2026, 6, 7, 22, 0, 0).getTime(); // after old 18:00 end
+  assert.equal(shouldRemind(at8am, { ...base, lastShownAt: at8am - 61 * MIN }, config), true);
+  assert.equal(shouldRemind(at10pm, { ...base, lastShownAt: at10pm - 61 * MIN }, config), true);
 });
 
 test('interval elapsed in work hours → reminds', () => {

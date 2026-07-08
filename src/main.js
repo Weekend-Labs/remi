@@ -165,21 +165,12 @@ function applyConfig(patch) {
 }
 
 function settingsSubmenu() {
-  const hoursLabel = (h) => `${h.start}–${h.end}`;
   return [
     {
       label: 'Interval',
       submenu: INTERVAL_PRESETS.map((m) => ({
         label: `${m} min`, type: 'radio', checked: config.intervalMinutes === m,
         click: () => applyConfig({ intervalMinutes: m }),
-      })),
-    },
-    {
-      label: 'Work hours',
-      submenu: HOURS_PRESETS.map((h) => ({
-        label: hoursLabel(h), type: 'radio',
-        checked: config.workHours.start === h.start && config.workHours.end === h.end,
-        click: () => applyConfig({ workHours: { ...h } }),
       })),
     },
     {
@@ -205,7 +196,7 @@ function updateTray() {
   tray.setTitle(` 💧 ${state.glassesHad}/${state.goal}${s > 0 ? ` · 🔥${s}` : ''}`);
   tray.setContextMenu(Menu.buildFromTemplate([
     { label: `Today: ${state.glassesHad}/${state.goal} glasses`, enabled: false },
-    { label: `Every ${config.intervalMinutes}m · ${config.workHours.start}–${config.workHours.end}`, enabled: false },
+    { label: `Every ${config.intervalMinutes}m`, enabled: false },
     { type: 'separator' },
     { label: 'Remind now', click: triggerReminder },
     { label: 'Test peek 👀', click: () => triggerPeek() },
