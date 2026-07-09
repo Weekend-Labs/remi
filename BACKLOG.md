@@ -21,7 +21,8 @@ Lane B (parallel):    #3 settings           (independent — run alongside Lane 
 
 ---
 
-## #0 — Foundation: daily history
+## #0 — Foundation: daily history  ✅ Done
+**Status:** Shipped — `history` in `state.json`, `rollover` writes finishing days.
 **Why:** #1 and #2 both need per-day records; today-only state can't support them.
 **Scope**
 - Add `history: { "YYYY-MM-DD": { had, goal } }` to `state.json`.
@@ -38,7 +39,8 @@ Lane B (parallel):    #3 settings           (independent — run alongside Lane 
 
 ---
 
-## #1 — Streak days
+## #1 — Streak days  ✅ Done
+**Status:** Shipped — `streak()` + tray title `🔥N` + goal-reached bubble.
 **Scope**
 - Pure `streak(history, today, goal)` = count of consecutive days up to and
   including today (today counts only if `had >= goal`) where `had >= goal`.
@@ -54,7 +56,9 @@ Lane B (parallel):    #3 settings           (independent — run alongside Lane 
 
 ---
 
-## #2 — Calendar view
+## #2 — Calendar view  ✅ Done
+**Status:** Shipped — `calendar.html` month grid via `getHistory()`, prev/next nav,
+tinted by level. Enhanced in v0.2.2 to also show the glasses-achieved count per day.
 **Scope**
 - Tray item **"View progress"** opens a small window (`calendar.html`) with a
   month grid; each day tinted by `had/goal`: none / partial / full (goal met).
@@ -70,7 +74,9 @@ Lane B (parallel):    #3 settings           (independent — run alongside Lane 
 
 ---
 
-## #3 — Settings: start/end time + frequency  (parallel lane)
+## #3 — Settings: start/end time + frequency  (parallel lane)  ✅ Done
+**Status:** Shipped — tray Settings submenu (interval / goal / snooze) applied live.
+Note: the Work hours submenu was later hidden in v0.2.2 (see Shipped since, below).
 **Scope**
 - Let the user change `workHours.start`, `workHours.end`, `intervalMinutes`
   (and `goal`, `snoozeMinutes`) **without hand-editing `config.json`**.
@@ -84,6 +90,29 @@ Lane B (parallel):    #3 settings           (independent — run alongside Lane 
 - [ ] Tray reflects the active settings.
 **Files:** `src/main.js` (tray submenu + apply), `src/state.js` (save-config helper); optional `src/renderer/settings.*`
 **Size:** M · **Depends on:** — (independent) · **Blocks:** —
+
+---
+
+## ✅ Shipped since this backlog (v0.2.x)
+
+Beyond #0–#3, these landed lane-by-lane, PR-reviewed before merge:
+
+- **Notification framework (F001)** — loopback HTTP API (`127.0.0.1:7777`, bearer token),
+  `info` peeks + `action` replies, queue/lifecycle. See `docs/specs/001-notification-framework.md`.
+- **Agent producers** — an **MCP server** (`mcp/`) and a **Claude skill** (`skill/`) so an AI
+  agent can fire notifications; plus a client sample + test UI (`examples/`).
+- **Expressive poses** — per-state sprites (sad / cheer / peek-wave / hands-folded).
+- **Reminder reliability** — reliable walk-in (double-rAF), 1-minute interval option, louder chime.
+- **Work hours disabled (v0.2.2)** — reminders fire at any hour; Work Hours tray item hidden
+  (helper kept for easy re-enable).
+- **Calendar glass count (v0.2.2)** — each day shows glasses achieved (`had/goal`).
+- **Info peek chime (v0.2.3)** — `info` peeks now play the entrance chime like the other paths.
+- **Slim bundle** — dev deps + `node_modules` excluded from the packaged app.
+
+Releases: **v0.2.0 → v0.2.3** on [Weekend-Labs/remi](https://github.com/Weekend-Labs/remi/releases).
+
+**Still open / parked:** Buddy V2 (Rive, F002) — paused pending export/plan. Smart triage
++ presence-aware delivery (F001 phases 5–6).
 
 ---
 
