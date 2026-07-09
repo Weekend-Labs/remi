@@ -94,7 +94,12 @@ function arrive() {
   walker.style.display = 'none';
   avatar.style.display = 'block'; // inline set (overrides the none from showReminder)
   scene.classList.add('show');    // fades in bubble + buttons, starts idle bob
-  dismissTimer = setTimeout(() => choose('snooze'), AUTO_DISMISS_MS);
+  // Auto-dismiss: walk out quietly WITHOUT snoozing. A snooze here would set a full
+  // snoozeMinutes (e.g. 10m) back-off that overrides the interval, so ignoring one
+  // reminder made the next arrive in 10m instead of on the configured interval. Now an
+  // ignored reminder just retires the buddy; the loop re-fires after intervalMinutes.
+  // Snooze only happens when the user actually clicks Snooze.
+  dismissTimer = setTimeout(walkOut, AUTO_DISMISS_MS);
 }
 
 function choose(action) {
