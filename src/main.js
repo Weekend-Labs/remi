@@ -169,7 +169,8 @@ function settingsSubmenu() {
     {
       label: 'Interval',
       submenu: INTERVAL_PRESETS.map((m) => ({
-        label: `${m} min`, type: 'radio', checked: config.intervalMinutes === m,
+        label: m === 1 ? '1 min (testing)' : `${m} min`, type: 'radio',
+        checked: config.intervalMinutes === m,
         click: () => applyConfig({ intervalMinutes: m }),
       })),
     },
