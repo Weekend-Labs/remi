@@ -68,6 +68,11 @@ function createOverlay() {
     webPreferences: {
       preload: path.join(__dirname, 'preload.js'),
       autoplayPolicy: 'no-user-gesture-required', // reminder fires from a timer, not a click
+      // The overlay lives hidden between reminders. Chromium suspends rAF/animation
+      // frames for hidden windows, so the walk-in sometimes never started and the buddy
+      // was stranded off-screen (invisible) while the window counted as visible — which
+      // also made "Remind now" a no-op for the next 30s. Keep frames flowing while hidden.
+      backgroundThrottling: false,
     },
   });
   overlayWin.setAlwaysOnTop(true, 'floating');

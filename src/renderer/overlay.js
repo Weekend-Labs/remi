@@ -63,6 +63,21 @@ function playChime() {
   } catch { /* audio is optional; never block the reminder */ }
 }
 
+// Slide the scene with the Web Animations API rather than a CSS transition kicked off
+// by rAF. Two reasons: (1) the committed transform is the END state, so if frames aren't
+// flowing the buddy still lands where he belongs — worst case he pops in without the
+// walk, instead of being stranded off-screen and invisible; (2) it replaces the double-rAF
+// hack, which silently did nothing whenever the hidden window's rAF was suspended.
+function slide(el, fromX, toX, ms) {
+  el.getAnimations().forEach((a) => a.cancel()); // don't stack walk-in over walk-out
+  el.style.transition = 'none';
+  el.style.transform = `translateX(${toX})`;
+  el.animate(
+    [{ transform: `translateX(${fromX})` }, { transform: `translateX(${toX})` }],
+    { duration: ms, easing: 'linear', fill: 'both' },
+  );
+}
+
 function showReminder(data = {}) {
   const { glassesHad = 0, goal = 8 } = data;
   msg.textContent = 'Time for water 💧';
@@ -79,13 +94,7 @@ function showReminder(data = {}) {
   walker.classList.remove('flip');
   walker.classList.add('stepping');
   walker.style.display = 'block';
-  scene.style.transition = 'none';
-  scene.style.transform = 'translateX(160%)';
-  void scene.offsetWidth; // reflow so the walk-in replays
-  scene.style.transition = `transform ${WALK_IN_MS}ms linear`; // constant walking speed
-  // Double rAF: on the hidden→shown path (Remind now), a single rAF fires before the
-  // 160% start paints, so the transition doesn't animate. Wait one extra frame.
-  requestAnimationFrame(() => requestAnimationFrame(() => { scene.style.transform = 'translateX(0)'; }));
+  slide(scene, '160%', '0', WALK_IN_MS); // walk in from the right, constant speed
   arriveTimer = setTimeout(arrive, WALK_IN_MS);
 }
 
@@ -126,8 +135,7 @@ function walkOut() {
   avatar.style.display = 'none';
   walker.classList.add('flip', 'stepping'); // face right, step away
   walker.style.display = 'block';
-  scene.style.transition = `transform ${WALK_OUT_MS}ms linear`;
-  requestAnimationFrame(() => { scene.style.transform = 'translateX(160%)'; });
+  slide(scene, '0', '160%', WALK_OUT_MS);
   outTimer = setTimeout(() => window.buddy?.hide(), WALK_OUT_MS);
 }
 
@@ -158,12 +166,7 @@ function showNotification(data) {
   walker.classList.remove('flip');
   walker.classList.add('stepping');
   walker.style.display = 'block';
-  scene.style.transition = 'none';
-  scene.style.transform = 'translateX(160%)';
-  void scene.offsetWidth;
-  scene.style.transition = `transform ${WALK_IN_MS}ms linear`;
-  // Double rAF: same hidden→shown replay race as showReminder — wait one extra frame.
-  requestAnimationFrame(() => requestAnimationFrame(() => { scene.style.transform = 'translateX(0)'; }));
+  slide(scene, '160%', '0', WALK_IN_MS); // same walk-in as showReminder
   arriveTimer = setTimeout(() => {
     walker.classList.remove('stepping');
     walker.style.display = 'none';
